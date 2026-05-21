@@ -96,6 +96,7 @@ text "text" =
     )+                                          { return g.createText(p.join("")); }
 
     / linebreak
+    / math_env
     / (&unskip_macro _)? m:hmode_macro          { return m; }
     / math
 
@@ -875,6 +876,29 @@ inline_math =
 display_math =
     math_shift math_shift m:$math_primitive+ math_shift math_shift { return g.parseMath(m, true); }
     / escape left_br      m:$math_primitive+ escape right_br       { return g.parseMath(m, true); }
+
+
+// Standard amsmath/LaTeX display math environments. KaTeX accepts
+// these natively, so we pass the original \begin{X}...\end{X}
+// straight through. The grammar is permissive about content: it
+// captures everything (including unbalanced braces) up to the
+// matching \end{X} - this is the same approach KaTeX uses
+// internally for environment matching.
+math_env =
+    escape begin _ begin_group name:$math_env_name end_group
+    body:$(!(escape end _ begin_group $math_env_name end_group) .)*
+    escape end _ begin_group end_name:$math_env_name end_group
+    & { return name === end_name; }
+    { return g.parseMath('\\begin{' + name + '}' + body + '\\end{' + name + '}', true); }
+
+math_env_name "math environment name" =
+    ("equation" "*"?)
+    / ("eqnarray" "*"?)
+    / ("align" "*"?)
+    / ("alignat" "*"?)
+    / ("multline" "*"?)
+    / ("gather" "*"?)
+    / "displaymath"
 
 
 math_primitive =
