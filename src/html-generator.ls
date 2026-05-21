@@ -110,8 +110,14 @@ export class HtmlGenerator extends Generator
     image:              (width, height, url) ~> ~>
                             el = create @img
                             el.src = url
-                            el.height = height
-                            el.width = width
+                            # CSS units (cm/pt/em/...) survive
+                            # via style; HTML attrs parse to int
+                            # and silently drop the unit, sizing
+                            # a `3cm` image to 3px.
+                            if height
+                                el.style.height = height
+                            if width
+                                el.style.width = width
 
                             return el
 

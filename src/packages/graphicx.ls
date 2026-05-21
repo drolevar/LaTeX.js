@@ -88,4 +88,9 @@ export class Graphicx
 
         # order of the keys is important! insert into map in order!
 
-        [ @g.createImage kvl.get("width"), kvl.get("height"), file ]
+        # kvl is null when neither optional [key=value] arg group
+        # was supplied (e.g. plain \includegraphics{file}); guard
+        # so the bare-arg form doesn't crash.
+        w = if kvl then kvl.get("width") else null
+        h = if kvl then kvl.get("height") else null
+        [ @g.createImage w, h, file ]
