@@ -145,6 +145,10 @@ export class HtmlGenerator extends Generator
     #    TODO: infer language from LaTeX preamble and load hypenation patterns automatically
     #  - styles: array with additional CSS stylesheets
     #  - precision: precision of numbers in CSS and SVG
+    #  - tolerant: when true, unknown macros and environments
+    #    degrade to placeholder output instead of throwing. Useful
+    #    for preview tools that render best-effort partial output
+    #    rather than fail on the first unsupported construct.
     (options) ->
         @_options = Object.assign {
             documentClass: "article"
@@ -152,6 +156,7 @@ export class HtmlGenerator extends Generator
             hyphenate: true
             languagePatterns: h-en
             precision: 3
+            tolerant: false
         }, options
 
         if @_options.hyphenate

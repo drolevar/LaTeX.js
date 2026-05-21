@@ -10,7 +10,7 @@
 // parses a full LaTeX document, or just the contents of the document environment; returns the generator
 latex =
     &with_preamble
-    (skip_all_space escape (&is_hvmode / &is_preamble) macro)*
+    (skip_all_space escape ((&is_hvmode / &is_preamble) macro / &{ return g && g._options && g._options.tolerant; } !begin !end unknown_macro) / &{ return g && g._options && g._options.tolerant; } !(skip_all_space escape begin _ begin_group "document") .)*
     skip_all_space
     (begin_doc / &{ error("expected \\begin{document}") })
         document
@@ -220,7 +220,7 @@ only_preamble =
 
 unknown_macro =
     m:identifier
-    { error("unknown macro: \\" + m); }
+    { return g.createFragment(g.unknownMacro(m)); }
 
 
 

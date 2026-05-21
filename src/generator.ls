@@ -103,6 +103,16 @@ export class Generator
     setErrorFn: (e) !->
         error := e
 
+    # Tolerant-mode fallback for the PEG grammar's unknown_macro
+    # rule. Strict mode keeps the original throwing behaviour;
+    # tolerant mode emits a placeholder fragment so the rest of
+    # the document still parses + renders.
+    unknownMacro: (name) ->
+        if not @_options?.tolerant
+            error "unknown macro: \\#{name}"
+        console.warn "tolerant: unknown macro \\#{name}"
+        [ @createText "\\" + name ]
+
 
     location: !-> error "location function not set!"
 
@@ -210,7 +220,15 @@ export class Generator
 
     begin: (env_id) !->
         if not @hasMacro env_id
-            error "unknown environment: #{env_id}"
+            if @_options?.tolerant
+                # Register no-op begin + end so the env body
+                # parses + renders, just without semantics. Console
+                # log so the integrator can see what was tolerated.
+                console.warn "tolerant: unknown environment '#{env_id}'"
+                @_macros[env_id]          = -> []
+                @_macros["end" + env_id]  = -> []
+            else
+                error "unknown environment: #{env_id}"
 
         @startBalanced!
         @enterGroup!
