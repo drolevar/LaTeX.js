@@ -468,6 +468,12 @@ export class HtmlGenerator extends Generator
 
 
     parseMath: (math, display) ->
+        # Text font-size wrappers (\small, \begin{small}, ...) are invalid
+        # in math and make KaTeX error; authors use them to shrink
+        # equations. Strip them so the math itself still renders.
+        math = math
+            .replace /\\(begin|end)\{(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\}/g, ''
+            .replace /\\(tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)(?![a-zA-Z])/g, ''
         f = document.createDocumentFragment!
         katex.render math, f,
             displayMode: !!display

@@ -851,7 +851,11 @@ h_environment =
         macro_args                                          // parse macro args (which now become environment args)
         node:( &. { return g.macro(id.id, g.endArgs()); })  // then execute macro with args without consuming input
         sb:(s:space? {return g.createText(s); })
-        p:paragraph_with_linebreak*                         // then parse environment contents (if macro left some)
+        // Tolerant: consume unparseable content up to \end so an
+        // unknown env never backtracks - a backtrack leaks enterGroup
+        // state and mangles the enclosing env into "beginX" text.
+        p:(paragraph_with_linebreak
+          / &{ return g && g._options && g._options.tolerant; } !end_env . { return undefined; })*
     end_id:end_env se:(s:space? {return g.createText(s); })
     {
         var end = g.end(id.end, end_id);
@@ -876,7 +880,10 @@ environment =
     id:begin_env  !{ g.break(); }
         macro_args                                          // parse macro args (which now become environment args)
         node:( &. { return g.macro(id.id, g.endArgs()); })  // then execute macro with args without consuming input
-        p:paragraph*                                        // then parse environment contents (if macro left some)
+        // Tolerant: recover past unparseable content up to \end (as in
+        // h_environment) so the env never backtracks and leaks groups.
+        p:(paragraph
+          / &{ return g && g._options && g._options.tolerant; } !end_env . { return undefined; })*
     end_id:end_env
     {
         var end = g.end(id.end, end_id);

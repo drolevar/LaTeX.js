@@ -526,6 +526,11 @@ export class LaTeX
     args.\underline     = <[ H hg ]>
     \underline          : (txt) -> [ @g.create @g.inline, txt, "hbox underline" ]
 
+    args.\textsuperscript = <[ H hg ]>
+    \textsuperscript    : (txt) -> [ @g.create 'sup', txt ]
+    args.\textsubscript = <[ H hg ]>
+    \textsubscript      : (txt) -> [ @g.create 'sub', txt ]
+
 
     # \mbox{text} - not broken into lines
     args.\mbox =        <[ H hg ]>

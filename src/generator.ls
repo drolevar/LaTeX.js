@@ -297,7 +297,10 @@ export class Generator
 
 
     end: (id, end_id) ->
-        if id != end_id
+        # Tolerant: an env closed by a mismatched \end (e.g. recovery
+        # inside an unknown env grabbed a nested \end) recovers by
+        # accepting the close instead of aborting the whole document.
+        if id != end_id and not @_options?.tolerant
             error "environment '#{id}' is missing its end, found '#{end_id}' instead"
 
         if @hasMacro "end" + id

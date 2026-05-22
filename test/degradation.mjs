@@ -62,5 +62,15 @@ const ok = (cond, msg) => cond ? passed++ : (failed++, console.log(`FAIL ${msg}`
     ok(JSON.stringify(gen._groups) === '[0]', 'group stack stays balanced (no leak)');
 }
 
+// (5) \textsuperscript -> <sup>; a size-wrapped equation (\begin{small}
+//     inside math) renders in KaTeX instead of erroring.
+{
+    const gen = new HtmlGenerator({ hyphenate: false, tolerant: true });
+    const src = wrap('Word\\textsuperscript{2} and \\begin{equation}\\begin{small}x + y = z\\end{small}\\end{equation}');
+    const html = parse(src, { generator: gen }).htmlDocument().body.innerHTML;
+    ok(/<sup/.test(html), 'textsuperscript renders as <sup>');
+    ok(!/katex-error/.test(html) && /class="katex/.test(html), 'size-wrapped equation renders via KaTeX, no error');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
