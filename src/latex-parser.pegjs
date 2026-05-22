@@ -100,17 +100,17 @@ text "text" =
     / (&unskip_macro _)? m:hmode_macro          { return m; }
     / math
 
-    // Tolerant mode: a char that text mode can't place - _ ^ # or a
-    // literal ] - is a LaTeX error, but real papers hit them in
-    // ref/label keys (\ref{sec:question_B}), emails, file paths,
-    // parameter tokens (#1) nested in a colored arg, and literal
-    // brackets inside an argument (\textcolor{red}{[note]}, where ] is
-    // otherwise reserved for closing an optional group). Tried LAST
-    // (after math and the real macro/parameter/optgroup rules), so it
-    // only rescues a char that would otherwise abort the enclosing
-    // group - it can't steal a ] that actually closes an optional arg.
+    // Tolerant mode: a stray _ ^ or # in text mode is a LaTeX error,
+    // but real papers hit them in ref/label keys (\ref{sec:question_B}),
+    // emails, file paths, and parameter tokens (#1) nested in a colored
+    // arg inside a \newcommand body. Tried LAST (after math and the real
+    // macro/parameter rules), so it only rescues a char that would
+    // otherwise abort the enclosing group.
+    // NB: ] is deliberately NOT here - text is greedy, so a tolerant ]
+    // would be consumed as a literal before an enclosing opt_group could
+    // close on it, breaking every [optional] argument.
     / &{ return g && g._options && g._options.tolerant; }
-      c:$([_^#\]])                                { return g.createText(c); }
+      c:$([_^#])                                  { return g.createText(c); }
 
     // groups
     / begin_group                             & { g.enterGroup(true); return true; } // copy attributes

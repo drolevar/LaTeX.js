@@ -62,8 +62,13 @@ const cases = [
         src: wrap('', '\\label{sec:question_B}See \\ref{sec:question_B}.'),
     },
     {
-        name: 'literal [brackets] inside an argument',
-        src: wrap('\\usepackage{xcolor}\n', 'A \\textcolor{red}{[note] text} here.'),
+        name: 'optional [short] args on title/author/section + maketitle',
+        // Optional-arg support: \author[short]{full} etc. must parse
+        // and \maketitle must not crash on any null title/author/date.
+        src: '\\documentclass{article}\n\\title[T]{A Long Title}\n'
+           + '\\author[A. Auth et al.]{A. Author and B. Author}\n'
+           + '\\begin{document}\n\\maketitle\n'
+           + '\\section[Sec]{A Section} body.\n\\end{document}',
     },
     {
         name: 'unknown length via \\setlength',

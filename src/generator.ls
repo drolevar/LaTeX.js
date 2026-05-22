@@ -120,7 +120,7 @@ export class Generator
 
     # set the title of the document, usually called by the \maketitle macro
     setTitle: (title) ->
-        @documentTitle = title.textContent
+        @documentTitle = title?.textContent
 
 
 

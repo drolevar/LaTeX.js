@@ -777,8 +777,8 @@
 	        peg$c14 = peg$otherExpectation("text"),
 	        peg$c15 = function(p) { return g.createText(p.join("")); },
 	        peg$c16 = function(m) { return m; },
-	        peg$c17 = /^[_\^#\]]/,
-	        peg$c18 = peg$classExpectation(["_", "^", "#", "]"], false, false),
+	        peg$c17 = /^[_\^#]/,
+	        peg$c18 = peg$classExpectation(["_", "^", "#"], false, false),
 	        peg$c19 = function(c) { return g.createText(c); },
 	        peg$c20 = function() { g.enterGroup(true); return true; },
 	        peg$c21 = function(s) { return g.createText(s); },
@@ -17192,15 +17192,15 @@
 	  LaTeX.prototype['abstractname'] = function(){
 	    return ["Abstract"];
 	  };
-	  args['title'] = ['HV', 'g'];
-	  args['author'] = ['HV', 'g'];
+	  args['title'] = ['HV', 'o?', 'g'];
+	  args['author'] = ['HV', 'o?', 'g'];
 	  args['and'] = ['H'];
 	  args['date'] = ['HV', 'g'];
 	  args['thanks'] = ['HV', 'g'];
-	  LaTeX.prototype['title'] = function(t){
+	  LaTeX.prototype['title'] = function(short, t){
 	    this._title = t;
 	  };
-	  LaTeX.prototype['author'] = function(a){
+	  LaTeX.prototype['author'] = function(short, a){
 	    this._author = a;
 	  };
 	  LaTeX.prototype['date'] = function(d){
@@ -18288,7 +18288,7 @@
 	    error("location function not set!");
 	  };
 	  Generator.prototype.setTitle = function(title){
-	    return this.documentTitle = title.textContent;
+	    return this.documentTitle = title != null ? title.textContent : void 8;
 	  };
 	  Generator.prototype.hasSymbol = function(name){
 	    return Macros.symbols.has(name);

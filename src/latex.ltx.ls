@@ -217,14 +217,14 @@ export class LaTeX
     \abstractname       :-> [ "Abstract" ]
 
 
-    args.\title =       <[ HV g ]>
-    args.\author =      <[ HV g ]>
+    args.\title =       <[ HV o? g ]>
+    args.\author =      <[ HV o? g ]>
     args.\and =         <[ H ]>
     args.\date =        <[ HV g ]>
     args.\thanks =      <[ HV g ]>
 
-    \title              : (t) !-> @_title = t
-    \author             : (a) !-> @_author = a
+    \title              : (short, t) !-> @_title = t
+    \author             : (short, a) !-> @_author = a
     \date               : (d) !-> @_date = d
 
     \and                :-> @g.macro \quad
