@@ -273,7 +273,13 @@ export class Generator
 
     # end the last group - throws if there was no group to end
     exitGroup: !->
-        --@_groups.top >= 0 || error "there is no group to end here"
+        if --@_groups.top < 0
+            # Group underflow (an extra }/\egroup the preamble or body
+            # left unbalanced). Strict mode throws; tolerant mode clamps
+            # and keeps going rather than aborting the document.
+            error "there is no group to end here" if not @_options?.tolerant
+            @_groups.top = 0
+            return
         @_stack.pop!
 
     # Track nesting inside optional [..] arguments so the tolerant

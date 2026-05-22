@@ -1045,8 +1045,8 @@
 	        peg$c232 = peg$literalExpectation("hsb", false),
 	        peg$c233 = "gray",
 	        peg$c234 = peg$literalExpectation("gray", false),
-	        peg$c235 = "RBG",
-	        peg$c236 = peg$literalExpectation("RBG", false),
+	        peg$c235 = "RGB",
+	        peg$c236 = peg$literalExpectation("RGB", false),
 	        peg$c237 = "HTML",
 	        peg$c238 = peg$literalExpectation("HTML", false),
 	        peg$c239 = "HSB",
@@ -17897,15 +17897,15 @@
 	  LaTeX.prototype['abstractname'] = function(){
 	    return ["Abstract"];
 	  };
-	  args['title'] = ['HV', 'o?', 'g'];
-	  args['author'] = ['HV', 'o?', 'g'];
+	  args['title'] = ['HV', 's', 'o?', 'g'];
+	  args['author'] = ['HV', 's', 'o?', 'g'];
 	  args['and'] = ['H'];
 	  args['date'] = ['HV', 'g'];
 	  args['thanks'] = ['HV', 'g'];
-	  LaTeX.prototype['title'] = function(short, t){
+	  LaTeX.prototype['title'] = function(star, short, t){
 	    this._title = t;
 	  };
-	  LaTeX.prototype['author'] = function(short, a){
+	  LaTeX.prototype['author'] = function(star, short, a){
 	    this._author = a;
 	  };
 	  LaTeX.prototype['date'] = function(d){
@@ -19165,7 +19165,14 @@
 	    ++this._groups.top;
 	  };
 	  Generator.prototype.exitGroup = function(){
-	    --this._groups.top >= 0 || error("there is no group to end here");
+	    var ref$;
+	    if (--this._groups.top < 0) {
+	      if (!((ref$ = this._options) != null && ref$.tolerant)) {
+	        error("there is no group to end here");
+	      }
+	      this._groups.top = 0;
+	      return;
+	    }
 	    this._stack.pop();
 	  };
 	  Generator.prototype.enterOptarg = function(){

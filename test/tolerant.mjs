@@ -121,6 +121,19 @@ const cases = [
           + '\\begin{itemize}\\item e\n'
           + '\\end{itemize}\\end{itemize}\\end{itemize}\\end{itemize}\\end{itemize}'),
     },
+    {
+        name: 'uppercase RGB color model',
+        src: wrap('\\usepackage{xcolor}\n\\definecolor{p}{RGB}{128,0,128}\n', 'Body.'),
+    },
+    {
+        name: 'starred author with optional (springer nature)',
+        src: '\\documentclass{article}\n\\author*[1]{Stepan Dobrodey}\n'
+           + '\\begin{document}\nBody.\n\\end{document}',
+    },
+    {
+        name: 'group underflow (extra closing brace)',
+        src: wrap('', 'Text with an extra closing brace } here.'),
+    },
 ];
 
 let passed = 0;

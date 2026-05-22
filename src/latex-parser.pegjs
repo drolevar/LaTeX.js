@@ -663,7 +663,7 @@ color_model     = core_model / int_model / dec_model / pseudo_model
 
 core_model      = "rgb" / "cmyk" / "cmy" / "hsb" / "gray"
 
-int_model       = "RBG" / "HTML" / "HSB" / "Gray"
+int_model       = "RGB" / "HTML" / "HSB" / "Gray"
 
 dec_model       = "Hsb" / "tHsb" / "wave"
 
