@@ -314,8 +314,12 @@ nextArgStar =
 
 
 // {identifier}
+// Permissive id: counter/color/label names in real documents contain
+// underscores and digits (\definecolor{blind_blue}, \arabic{my_ctr}).
+// Plain `identifier` is letters-only and would abort on the first _.
+// This widening only rescues ids that would otherwise fail.
 id_group        =   _ begin_group _
-                        id:identifier
+                        id:$((char / digit / [_:.@*+-])+)
                     _ end_group
                     { return id; }
 
