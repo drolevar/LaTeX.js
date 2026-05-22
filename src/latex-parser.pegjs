@@ -278,8 +278,14 @@ key =
     $(char / digit / sp / [-$&_/@] / escape identifier / ![=,] utf8_char)+
 
 key_val "key=value" =
-    k:key v:(_ '=' _ v:(key / &{ error("value expected") }) { return v.trim(); })?
-    { return [k.trim(), v == null ? true : v ]; }
+    k:key v:(_ '=' _ v:(keyval_braced / key / &{ error("value expected") }) { return v; })?
+    { return [k.trim(), v == null ? true : (typeof v === "string" ? v.trim() : v) ]; }
+
+// A brace-delimited key value, e.g. \hypersetup{pdftitle={\fulltitle}}.
+// Captures the (non-nested) content verbatim so a macro or punctuation
+// inside doesn't have to satisfy the plain `key` charset.
+keyval_braced =
+    begin_group v:$((!end_group .)*) end_group   { return v.trim(); }
 
 
 macro_args =

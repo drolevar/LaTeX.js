@@ -83,6 +83,11 @@ const cases = [
         src: wrap('', '\\section{A}\\label{x} and \\section{B}\\label{x} again.'),
     },
     {
+        name: 'braced key-value (hyperref pdftitle)',
+        src: wrap('\\usepackage{hyperref}\n'
+                + '\\hypersetup{pdftitle={A Title}, pdfauthor={Auth}}\n', 'Body.'),
+    },
+    {
         name: 'enumitem star counter \\arabic*',
         src: wrap('', 'Item label uses \\arabic* style.'),
     },
