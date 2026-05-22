@@ -18954,6 +18954,7 @@
 	  Generator.prototype._continue = false;
 	  Generator.prototype._labels = null;
 	  Generator.prototype._refs = null;
+	  Generator.prototype._degradations = null;
 	  Generator.prototype._counters = null;
 	  Generator.prototype._resets = null;
 	  Generator.prototype._marginpars = null;
@@ -18977,6 +18978,7 @@
 	    this._groups = [0];
 	    this._labels = new Map();
 	    this._refs = new Map();
+	    this._degradations = [];
 	    this._marginpars = [];
 	    this._counters = new Map();
 	    this._resets = new Map();
@@ -19009,9 +19011,27 @@
 	    var ref$;
 	    if (!((ref$ = this._options) != null && ref$.tolerant)) {
 	      error("unknown macro: \\" + name);
+	      return [];
 	    }
-	    console.warn("tolerant: unknown macro \\" + name);
-	    return [this.createText("\\" + name)];
+	    return [this.unsupportedNode('unknown-macro', name, "unsupported macro \\" + name)];
+	  };
+	  Generator.prototype.reportDegradation = function(kind, name, reason){
+	    this._degradations.push({
+	      kind: kind,
+	      name: name,
+	      reason: reason
+	    });
+	  };
+	  Generator.prototype.degradations = function(){
+	    return this._degradations;
+	  };
+	  Generator.prototype.unsupportedNode = function(kind, name, reason){
+	    var el;
+	    this.reportDegradation(kind, name, reason);
+	    el = this.create(this.inline, this.createText("\\" + name), "latex-unsupported");
+	    el.setAttribute("title", reason);
+	    el.setAttribute("data-kind", kind);
+	    return el;
 	  };
 	  Generator.prototype.location = function(){
 	    error("location function not set!");
@@ -19048,25 +19068,39 @@
 	    return ((ref$ = Macros.args[marco]) != null ? ref$[0] : void 8) === 'P';
 	  };
 	  Generator.prototype.macro = function(name, args){
-	    var ref$, ref1$, this$ = this;
+	    var ref$, invoke, ref1$, e, this$ = this;
 	    if (symbols$1.has(name)) {
 	      return [this.createText(symbols$1.get(name))];
 	    }
 	    if (typeof this._macros[name] !== 'function') {
-	      if (!((ref$ = this._options) != null && ref$.tolerant)) {
-	        error("no such macro: \\" + name);
+	      if ((ref$ = this._options) != null && ref$.tolerant) {
+	        this.reportDegradation('unknown-macro', name, "\\" + name + " has no implementation");
+	        return [];
 	      }
+	      error("no such macro: \\" + name);
 	      return [];
 	    }
-	    return (ref1$ = this._macros[name].apply(this._macros, args)) != null ? ref1$.filter(function(x){
-	      return x != undefined;
-	    }).map(function(x){
-	      if (typeof x === 'string' || x instanceof String) {
-	        return this$.createText(x);
-	      } else {
-	        return this$.addAttributes(x);
-	      }
-	    }) : void 8;
+	    invoke = function(){
+	      var ref$;
+	      return (ref$ = this$._macros[name].apply(this$._macros, args)) != null ? ref$.filter(function(x){
+	        return x != undefined;
+	      }).map(function(x){
+	        if (typeof x === 'string' || x instanceof String) {
+	          return this$.createText(x);
+	        } else {
+	          return this$.addAttributes(x);
+	        }
+	      }) : void 8;
+	    };
+	    if (!((ref1$ = this._options) != null && ref1$.tolerant)) {
+	      return invoke();
+	    }
+	    try {
+	      return invoke();
+	    } catch (e$) {
+	      e = e$;
+	      return [this.unsupportedNode('macro-threw', name, "\\" + name + ": " + e.message)];
+	    }
 	  };
 	  Generator.prototype.beginArgs = function(macro){
 	    var that;

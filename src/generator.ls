@@ -30,6 +30,7 @@ export class Generator
 
     _labels: null
     _refs: null
+    _degradations: null
 
     _counters: null
     _resets: null
@@ -65,6 +66,7 @@ export class Generator
 
         @_labels = new Map()
         @_refs = new Map()
+        @_degradations = []
 
         @_marginpars = []
 
@@ -105,13 +107,34 @@ export class Generator
 
     # Tolerant-mode fallback for the PEG grammar's unknown_macro
     # rule. Strict mode keeps the original throwing behaviour;
-    # tolerant mode emits a placeholder fragment so the rest of
-    # the document still parses + renders.
+    # tolerant mode emits a visible placeholder so the rest of the
+    # document still parses + renders, and records the degradation.
     unknownMacro: (name) ->
         if not @_options?.tolerant
             error "unknown macro: \\#{name}"
-        console.warn "tolerant: unknown macro \\#{name}"
-        [ @createText "\\" + name ]
+            return []
+        [ @unsupportedNode \unknown-macro, name, "unsupported macro \\#{name}" ]
+
+    # Tolerant-mode degradation log. Every place that skips or
+    # downgrades an unsupported construct records one entry, so the
+    # host + the bug-hunt detector can report what was dropped - the
+    # signal that replaces "did it crash?".
+    reportDegradation: (kind, name, reason) !->
+        @_degradations.push { kind, name, reason }
+
+    degradations: -> @_degradations
+
+    # Visible placeholder for a dropped construct, plus its record:
+    # <span class="latex-unsupported" data-kind=".." title="reason">\name</span>.
+    # Shared by unknownMacro, the macro() runtime-throw catch, and the
+    # Seam B argError bail-out. @create / @inline / @createText are
+    # HtmlGenerator methods; `this` is always an HtmlGenerator.
+    unsupportedNode: (kind, name, reason) ->
+        @reportDegradation kind, name, reason
+        el = @create @inline, (@createText "\\" + name), "latex-unsupported"
+        el.setAttribute "title", reason
+        el.setAttribute "data-kind", kind
+        el
 
 
     location: !-> error "location function not set!"
@@ -152,18 +175,31 @@ export class Generator
         if symbols.has name
             return [ @createText symbols.get name ]
 
-        # The macro may be flagged as defined (hasMacro) yet have no
-        # callable impl - e.g. a list level beyond the 4 LaTeX.js
-        # defines, reached after tolerant over-deep nesting. Degrade to
-        # empty rather than crashing on .apply of undefined.
+        # Flagged defined yet no callable impl (e.g. a list level past
+        # the 4 LaTeX.js defines, reached after tolerant over-deep
+        # nesting). Record telemetry; emit nothing visible (internal
+        # artifact, not a user construct).
         if typeof @_macros[name] != 'function'
-            error "no such macro: \\#{name}" if not @_options?.tolerant
+            if @_options?.tolerant
+                @reportDegradation \unknown-macro, name, "\\#{name} has no implementation"
+                return []
+            error "no such macro: \\#{name}"
             return []
 
-        @_macros[name]
-            .apply @_macros, args
-            ?.filter (x) -> x !~= undefined
-            .map (x) ~> if typeof x == 'string' or x instanceof String then @createText x else @addAttributes x
+        invoke = ~>
+            @_macros[name]
+                .apply @_macros, args
+                ?.filter (x) -> x !~= undefined
+                .map (x) ~> if typeof x == 'string' or x instanceof String then @createText x else @addAttributes x
+
+        return invoke! if not @_options?.tolerant
+
+        # Seam A: a handler that throws at runtime is contained to a
+        # placeholder so the rest of the document still renders.
+        try
+            invoke!
+        catch e
+            [ @unsupportedNode \macro-threw, name, "\\#{name}: #{e.message}" ]
 
 
     # macro arguments
