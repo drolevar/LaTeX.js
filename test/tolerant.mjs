@@ -93,6 +93,15 @@ const cases = [
                 + '\\hypersetup{pdftitle={A Title}, pdfauthor={Auth}}\n', 'Body.'),
     },
     {
+        name: 'literal [brackets] in arg AND optional args coexist',
+        src: wrap('\\usepackage{xcolor}\n',
+            '\\section[Sec]{S} A \\textcolor{red}{[note] text} here.'),
+    },
+    {
+        name: 'graphicspath brace-list',
+        src: wrap('\\usepackage{graphicx}\n\\graphicspath{{./fig/}{../img/}}\n', 'Body.'),
+    },
+    {
         name: 'enumitem star counter \\arabic*',
         src: wrap('', 'Item label uses \\arabic* style.'),
     },

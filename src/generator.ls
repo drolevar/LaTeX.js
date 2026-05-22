@@ -276,6 +276,13 @@ export class Generator
         --@_groups.top >= 0 || error "there is no group to end here"
         @_stack.pop!
 
+    # Track nesting inside optional [..] arguments so the tolerant
+    # parser can tell a literal ] (inside a {} group, e.g.
+    # \textcolor{red}{[note]}) from a ] that closes an optional arg.
+    enterOptarg: !-> @_optDepth = (@_optDepth || 0) + 1
+    exitOptarg:  !-> @_optDepth = (@_optDepth || 0) - 1
+    inOptarg:     -> (@_optDepth || 0) > 0
+
     # start a new level of grouping
     startBalanced: !->
         @_groups.push 0

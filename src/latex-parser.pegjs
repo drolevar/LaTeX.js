@@ -129,11 +129,15 @@ text "text" =
     // arg inside a \newcommand body. Tried LAST (after math and the real
     // macro/parameter rules), so it only rescues a char that would
     // otherwise abort the enclosing group.
-    // NB: ] is deliberately NOT here - text is greedy, so a tolerant ]
-    // would be consumed as a literal before an enclosing opt_group could
-    // close on it, breaking every [optional] argument.
     / &{ return g && g._options && g._options.tolerant; }
       c:$([_^#])                                  { return g.createText(c); }
+
+    // A literal ] inside a {} group (e.g. \textcolor{red}{[note]}) is
+    // accepted only when NOT inside an optional [..] argument - there
+    // the ] must stay available to close the opt_group. inOptarg()
+    // distinguishes the two so this no longer breaks [optional] args.
+    / &{ return g && g._options && g._options.tolerant && !g.inOptarg(); }
+      c:$([\]])                                   { return g.createText(c); }
 
     // groups
     / begin_group                             & { g.enterGroup(true); return true; } // copy attributes
@@ -315,6 +319,7 @@ macro_args =
       / &{ return g.nextArg("lg?") }  l: length_group?                                                          { g.addParsedArg(l); }
       / &{ return g.nextArg("l?") }   l: length_optgroup?                                                       { g.addParsedArg(l); }
       / &{ return g.nextArg("m") }    m:(macro_group    / macro_bare / &{ g.argError("macro group argument expected") })     { g.addParsedArg(m); }
+      / &{ return g.nextArg("gl") }   l:(group_list     / &{ g.argError("group list argument expected") })       { g.addParsedArg(l); }
       / &{ return g.nextArg("u") }    u:(url_group      / &{ g.argError("url group argument expected") })       { g.addParsedArg(u); }
 
       / &{ return g.nextArg("c") }     c:(color_group          / &{ g.argError("color group expected") })       { g.addParsedArg(c); }
@@ -371,6 +376,16 @@ macro_group     =   _ begin_group _
 // (valid TeX; the macro is the argument directly).
 macro_bare      =   _ escape id:identifier
                     { return id; }
+
+// A brace-list argument: an outer group containing zero or more inner
+// brace groups, e.g. \graphicspath{{./fig/}{../img/}}. The `gl` arg
+// type was referenced but never implemented, so \graphicspath aborted
+// with "arguments ... have not been parsed". Inner contents are
+// captured verbatim (paths contain / . - etc.).
+group_list      =   _ begin_group _
+                        items:(begin_group p:$((!end_group .)*) end_group _ { return p; })*
+                    end_group
+                    { return items; }
 
 // [identifier]
 id_optgroup     =   _ begin_optgroup _
@@ -527,10 +542,11 @@ arg_hgroup      =   _ begin_group      & { g.enterGroup(); g.startBalanced(); re
 
 
 // [<LaTeX code/text>]
-opt_group       =   _ begin_optgroup   & { g.enterGroup(); g.startBalanced(); return true; }
+opt_group       =   _ begin_optgroup   & { g.enterGroup(); g.startBalanced(); g.enterOptarg(); return true; }
                         p:paragraph_with_linebreak*
                     end_optgroup                & { return g.isBalanced(); }
                     {
+                        g.exitOptarg();
                         g.isBalanced() || error("groups inside an optional argument need to be balanced!");
                         g.endBalanced();
                         g.exitGroup();
