@@ -612,7 +612,15 @@ model_list      = core:(core_model ":")? cm:color_model cml:("/" color_model)*
                 }
 
 
-color_spec      = f:float fl:((sp / ",") float)*
+                  // xcolor HTML model: a 6-hex-digit RRGGBB token, e.g.
+                  // \definecolor{c}{HTML}{1E50A2}. Tried before float
+                  // because float would mis-read "1E50A2" as 1E50 (sci
+                  // notation) and leave "A2" dangling. The trailing
+                  // negative lookahead requires a complete token so an
+                  // rgb/gray float list (which has '.' or ',') still
+                  // falls through to the float branch.
+color_spec      = h:$([0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]) ![0-9a-fA-F.] { return h; }
+                / f:float fl:((sp / ",") float)*
                   { var list = [ f ]; fl.forEach(f => list.push(f[1])); return list; }
                 / c_name
 

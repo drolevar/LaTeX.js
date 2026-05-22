@@ -44,6 +44,19 @@ const cases = [
         name: 'preamble dimension macros',
         src: wrap('\\textheight24cm\n\\textwidth16cm\n', 'Body text.'),
     },
+    {
+        name: 'unknown documentclass falls back to article',
+        // revtex/IEEEtran/llncs/... are not bundled.
+        src: '\\documentclass{revtex4-1}\n\\begin{document}\nBody.\n\\end{document}',
+    },
+    {
+        name: 'fnsymbol while counter is 0',
+        src: wrap('\\renewcommand{\\thefootnote}{\\fnsymbol{footnote}}\n', 'Body.'),
+    },
+    {
+        name: 'definecolor HTML hex model',
+        src: wrap('\\usepackage{xcolor}\n\\definecolor{RuriIro}{HTML}{1E50A2}\n', 'Body.'),
+    },
 ];
 
 let passed = 0;

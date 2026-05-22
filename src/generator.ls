@@ -552,7 +552,14 @@ export class Generator
         |   7   => @symbol(\textasteriskcentered) + @symbol \textasteriskcentered
         |   8   => @symbol(\textdagger) + @symbol \textdagger
         |   9   => @symbol(\textdaggerdbl) + @symbol \textdaggerdbl
-        |   _   => error "fnsymbol value must be between 1 and 9"
+        |   _   =>
+            # \fnsymbol is often defined while the counter is still 0
+            # (e.g. \renewcommand{\thefootnote}{\fnsymbol{footnote}});
+            # the real symbol is only needed once the counter steps to
+            # 1-9. Tolerant mode returns empty for out-of-range instead
+            # of aborting the document.
+            error "fnsymbol value must be between 1 and 9" if not @_options?.tolerant
+            ""
 
 
     ### label, ref

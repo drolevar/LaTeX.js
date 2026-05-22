@@ -1228,8 +1228,16 @@ export class LaTeX
                 Export = require "./documentclasses/#{documentclass}"
                 Class := Export.default || Export[Object.getOwnPropertyNames(Export).0]
             catch e
-                console.error "error loading documentclass \"#{documentclass}\": #{e}"
-                throw new Error "error loading documentclass \"#{documentclass}\""
+                # Journal/conference classes (revtex, IEEEtran, llncs,
+                # elsarticle, ...) are not bundled. Strict mode throws;
+                # tolerant mode falls back to the stock article class so
+                # the document still renders.
+                if @g._options?.tolerant
+                    console.warn "tolerant: unknown documentclass '#{documentclass}', using article"
+                    Class := builtin-documentclasses.article
+                else
+                    console.error "error loading documentclass \"#{documentclass}\": #{e}"
+                    throw new Error "error loading documentclass \"#{documentclass}\""
 
         @g.documentClass = new Class @g, options
         assignIn this, @g.documentClass
