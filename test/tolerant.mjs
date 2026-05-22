@@ -87,6 +87,12 @@ const cases = [
         src: wrap('', 'Item label uses \\arabic* style.'),
     },
     {
+        name: 'non-preamble primitive before documentclass',
+        // arXiv papers commonly lead with \pdfoutput=1 etc.
+        src: '\\pdfoutput=1\n\\documentclass{article}\n'
+           + '\\begin{document}\nBody.\n\\end{document}',
+    },
+    {
         name: 'lists nested past the depth limit',
         src: wrap('',
             '\\begin{itemize}\\item a\n'

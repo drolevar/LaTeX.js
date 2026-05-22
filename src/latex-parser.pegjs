@@ -27,9 +27,13 @@ latex =
     { return g; }
 
 
-// preamble starts with P macro, then only HV and P macros in preamble
+// preamble starts with P macro, then only HV and P macros in preamble.
+// Tolerant mode: real arXiv papers often lead with a non-preamble
+// primitive before \documentclass (e.g. "\pdfoutput=1") - accept any
+// leading macro as a preamble start so the preamble loop (which
+// tolerates unknown macros) can reach \documentclass.
 with_preamble =
-    skip_all_space escape &is_preamble
+    skip_all_space escape (&is_preamble / &{ return g && g._options && g._options.tolerant; })
 
 begin_doc =
     escape begin _ begin_group "document" end_group

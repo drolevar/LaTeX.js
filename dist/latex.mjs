@@ -2121,6 +2121,15 @@ var latexParser_pegjs = /*
           } else {
             s3 = peg$FAILED;
           }
+          if (s3 === peg$FAILED) {
+            peg$savedPos = peg$currPos;
+            s3 = peg$c0();
+            if (s3) {
+              s3 = void 0;
+            } else {
+              s3 = peg$FAILED;
+            }
+          }
           if (s3 !== peg$FAILED) {
             s1 = [s1, s2, s3];
             s0 = s1;
