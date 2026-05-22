@@ -36,6 +36,15 @@ const cases = [
     { name: 'gather',        src: wrap('\\begin{gather}a = 1\\\\ b = 2\\end{gather}') },
     { name: 'multline',      src: wrap('\\begin{multline}a + b\\\\ + c + d\\end{multline}') },
     { name: 'displaymath',   src: wrap('\\begin{displaymath}E = mc^2\\end{displaymath}') },
+    // Control symbols: backslash + non-letter math spacing macros.
+    // ctrl_sym only covers a fixed punctuation set (\, works), so
+    // \; \: \! \> used to break math parsing mid-document - the
+    // goslar.tex real-paper failure. They must now render via KaTeX.
+    { name: 'thin space \\;',  src: wrap('Value $T_{c}=1400\\;$K.') },
+    { name: 'med space \\:',   src: wrap('$a \\: b$') },
+    { name: 'neg space \\!',   src: wrap('$a \\! b$') },
+    { name: 'gt space \\>',    src: wrap('$a \\> b$') },
+    { name: 'spacing in display', src: wrap('\\[ a \\; b \\quad c \\! d \\]') },
 ];
 
 let passed = 0;

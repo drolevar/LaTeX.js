@@ -925,6 +925,16 @@ math_primitive =
     / superscript
     / subscript
     / escape identifier
+    // Control symbols: backslash + a single non-letter, e.g. the math
+    // spacing macros \; \: \! \> as well as \| etc. primitive/ctrl_sym
+    // only covers a fixed punctuation set, so these would otherwise
+    // break math parsing mid-document. The math body is captured as a
+    // raw string and handed to KaTeX, which understands them, so we
+    // just need to consume the characters here. !escape preserves the
+    // \\ linebreak; !char keeps \identifier above from being split;
+    // the excluded [ ] ( ) keep the \[ \] and \( \) math delimiters
+    // from being swallowed (they terminate display / inline math).
+    / escape !escape !char ![\[\]()] .
     / begin_group _ end_group
     / begin_group math_primitive+ end_group
     / sp / nl / linebreak / comment
