@@ -255,7 +255,10 @@ only_preamble =
     { error("macro only allowed in preamble: " + m); }
 
 unknown_macro =
-    m:identifier
+    // Consume a trailing optional [..] so an unknown macro's option
+    // (e.g. \footnotemark[3]) is swallowed rather than left behind,
+    // where its closing ] would break the enclosing balanced group.
+    m:identifier (_ opt_group)?
     { return g.createFragment(g.unknownMacro(m)); }
 
 
