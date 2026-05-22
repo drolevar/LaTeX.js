@@ -18278,8 +18278,12 @@
 	    return this._counters.has(c);
 	  };
 	  Generator.prototype.setCounter = function(c, v){
+	    var ref$;
 	    if (!this.hasCounter(c)) {
-	      error("no such counter: " + c);
+	      if (!((ref$ = this._options) != null && ref$.tolerant)) {
+	        error("no such counter: " + c);
+	      }
+	      console.warn("tolerant: auto-creating unknown counter " + c);
 	    }
 	    this._counters.set(c, v);
 	  };
@@ -18288,8 +18292,13 @@
 	    this.clearCounter(c);
 	  };
 	  Generator.prototype.counter = function(c){
+	    var ref$;
 	    if (!this.hasCounter(c)) {
-	      error("no such counter: " + c);
+	      if (!((ref$ = this._options) != null && ref$.tolerant)) {
+	        error("no such counter: " + c);
+	      }
+	      console.warn("tolerant: reading unknown counter " + c + " as 0");
+	      return 0;
 	    }
 	    return this._counters.get(c);
 	  };

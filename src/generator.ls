@@ -435,7 +435,13 @@ export class Generator
         @_counters.has c
 
     setCounter: (c, v) !->
-        error "no such counter: #{c}" if not @hasCounter c
+        if not @hasCounter c
+            # \setcounter on a counter LaTeX.js doesn't define (e.g.
+            # amsmath's MaxMatrixCols). Strict mode throws; tolerant
+            # mode auto-creates it so the value is simply stored and
+            # the document keeps rendering.
+            error "no such counter: #{c}" if not @_options?.tolerant
+            console.warn "tolerant: auto-creating unknown counter #{c}"
         @_counters.set c, v
 
     stepCounter: (c) !->
@@ -443,7 +449,10 @@ export class Generator
         @clearCounter c
 
     counter: (c) ->
-        error "no such counter: #{c}" if not @hasCounter c
+        if not @hasCounter c
+            error "no such counter: #{c}" if not @_options?.tolerant
+            console.warn "tolerant: reading unknown counter #{c} as 0"
+            return 0
         @_counters.get c
 
     refCounter: (c, id) ->
