@@ -311,7 +311,7 @@ macro_args =
       / &{ return g.nextArg("l") }    l:(length_group   / &{ g.argError("length group argument expected") })    { g.addParsedArg(l); }
       / &{ return g.nextArg("lg?") }  l: length_group?                                                          { g.addParsedArg(l); }
       / &{ return g.nextArg("l?") }   l: length_optgroup?                                                       { g.addParsedArg(l); }
-      / &{ return g.nextArg("m") }    m:(macro_group    / &{ g.argError("macro group argument expected") })     { g.addParsedArg(m); }
+      / &{ return g.nextArg("m") }    m:(macro_group    / macro_bare / &{ g.argError("macro group argument expected") })     { g.addParsedArg(m); }
       / &{ return g.nextArg("u") }    u:(url_group      / &{ g.argError("url group argument expected") })       { g.addParsedArg(u); }
 
       / &{ return g.nextArg("c") }     c:(color_group          / &{ g.argError("color group expected") })       { g.addParsedArg(c); }
@@ -362,6 +362,11 @@ ide_group       =   _ begin_group _
 macro_group     =   _ begin_group _
                         escape id:identifier
                     _ end_group
+                    { return id; }
+
+// A length-macro argument without braces, e.g. \setlength\foo{1pt}
+// (valid TeX; the macro is the argument directly).
+macro_bare      =   _ escape id:identifier
                     { return id; }
 
 // [identifier]

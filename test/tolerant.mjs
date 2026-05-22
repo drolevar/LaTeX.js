@@ -75,6 +75,11 @@ const cases = [
         src: wrap('\\setlength{\\topskip}{12pt}\n', 'Body.'),
     },
     {
+        name: 'bare \\setlength macro (no braces)',
+        // Valid TeX form \setlength\foo{1pt} (macro arg without braces).
+        src: wrap('\\setlength\\abovedisplayskip{14pt}\n', 'Body.'),
+    },
+    {
         name: 'rgb color spec with spaces',
         src: wrap('\\usepackage{xcolor}\n\\definecolor{db}{rgb}{0, 0, 0.5}\n', 'Body.'),
     },
