@@ -51,5 +51,16 @@ const ok = (cond, msg) => cond ? passed++ : (failed++, console.log(`FAIL ${msg}`
     ok(threw, 'strict mode still propagates a handler throw');
 }
 
+// (4) a stray & in an unknown env nested inside another env must not
+//     leak group state and mangle the outer environment (the 22821
+//     abstract-with-tblr case).
+{
+    const gen = new HtmlGenerator({ hyphenate: false, tolerant: true });
+    const src = wrap('\\begin{abstract}\nBefore. \\begin{tblr}{colspec={c|c}}a & b\\end{tblr} After.\n\\end{abstract}');
+    const html = parse(src, { generator: gen }).htmlDocument().body.innerHTML;
+    ok(!/beginabstract/.test(html), 'stray & in nested unknown env does not mangle the outer env');
+    ok(JSON.stringify(gen._groups) === '[0]', 'group stack stays balanced (no leak)');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

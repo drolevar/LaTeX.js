@@ -123,14 +123,16 @@ text "text" =
     / (&unskip_macro _)? m:hmode_macro          { return m; }
     / math
 
-    // Tolerant mode: a stray _ ^ or # in text mode is a LaTeX error,
+    // Tolerant mode: a stray _ ^ # or & in text mode is a LaTeX error,
     // but real papers hit them in ref/label keys (\ref{sec:question_B}),
-    // emails, file paths, and parameter tokens (#1) nested in a colored
-    // arg inside a \newcommand body. Tried LAST (after math and the real
-    // macro/parameter rules), so it only rescues a char that would
-    // otherwise abort the enclosing group.
+    // emails, file paths, parameter tokens (#1), and alignment tabs (&)
+    // loose in an unknown environment's body (e.g. tabularray tblr).
+    // Tried LAST (after math and the real macro/parameter rules); rescues
+    // a char that would otherwise abort the enclosing group -- and that
+    // backtrack leaks generator group state, corrupting the surrounding
+    // environment.
     / &{ return g && g._options && g._options.tolerant; }
-      c:$([_^#])                                  { return g.createText(c); }
+      c:$([_^#&])                                 { return g.createText(c); }
 
     // A literal ] inside a {} group (e.g. \textcolor{red}{[note]}) is
     // accepted only when NOT inside an optional [..] argument - there
