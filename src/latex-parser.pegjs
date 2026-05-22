@@ -14,7 +14,7 @@ latex =
     skip_all_space
     (begin_doc / &{ error("expected \\begin{document}") })
         document
-    (end_doc / &{ error("\\end{document} missing") })
+    (end_doc / &{ return g && g._options && g._options.tolerant; } / &{ error("\\end{document} missing") })
     .*
     EOF
     { return g; }
@@ -248,7 +248,10 @@ macro =
     macro_args
     {
         var args = g.parsedArgs();
+        var failed = g.argsFailed();
         g.endArgs();
+        if (failed)
+            return g.createFragment(g.unknownMacro(name));
         return g.createFragment(g.macro(name, args));
     }
 
@@ -256,7 +259,14 @@ macro =
 
 only_preamble =
     m:identifier
-    { error("macro only allowed in preamble: " + m); }
+    {
+        // Tolerant mode: a preamble-only macro used in the body
+        // (a stray \documentclass, \makeatletter, ...) degrades to a
+        // placeholder instead of aborting the whole document.
+        if (g._options && g._options.tolerant)
+            return g.createFragment(g.unknownMacro(m));
+        error("macro only allowed in preamble: " + m);
+    }
 
 unknown_macro =
     // Consume a trailing optional [..] so an unknown macro's option
@@ -492,6 +502,7 @@ coord_optgroup  =   _ begin_optgroup
 url_pct_encoded =   escape? p:$("%" hex hex) { return p; }
 
 url_char        =   char / digit / [-._~:/?#[\]@!$&()*+,;=] / "'" / url_pct_encoded
+                    / &{ return g && g._options && g._options.tolerant; } c:[^}] { return c; }
                     / &{ error("illegal char in url given"); }
 
 // {url}
@@ -515,7 +526,7 @@ arg_group       =   _ begin_group      & { g.enterGroup(); g.startBalanced(); re
                         p:paragraph_with_linebreak*
                     end_group
                     {
-                        g.isBalanced() || error("groups inside an argument need to be balanced!");
+                        g.isBalanced() || (g._options && g._options.tolerant) || error("groups inside an argument need to be balanced!");
                         g.endBalanced();
                         g.exitGroup();
 
@@ -534,7 +545,7 @@ arg_hgroup      =   _ begin_group      & { g.enterGroup(); g.startBalanced(); re
                         h:horizontal
                     end_group
                     {
-                        g.isBalanced() || error("groups inside an argument need to be balanced!");
+                        g.isBalanced() || (g._options && g._options.tolerant) || error("groups inside an argument need to be balanced!");
                         g.endBalanced();
                         g.exitGroup();
                         return g.createFragment(g.createText(s), h);
@@ -547,7 +558,7 @@ opt_group       =   _ begin_optgroup   & { g.enterGroup(); g.startBalanced(); g.
                     end_optgroup                & { return g.isBalanced(); }
                     {
                         g.exitOptarg();
-                        g.isBalanced() || error("groups inside an optional argument need to be balanced!");
+                        g.isBalanced() || (g._options && g._options.tolerant) || error("groups inside an optional argument need to be balanced!");
                         g.endBalanced();
                         g.exitGroup();
                         return g.createFragment(p);

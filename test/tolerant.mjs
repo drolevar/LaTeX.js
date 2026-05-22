@@ -138,6 +138,23 @@ const cases = [
         name: '\\makeatletter in the document body',
         src: wrap('', 'Before. \\makeatletter \\makeatother After.'),
     },
+    {
+        name: 'href with illegal url chars degrades, no throw',
+        src: wrap('\\usepackage{hyperref}\n',
+            'See \\href{https://x.example/a b|c}{link} here.'),
+    },
+    {
+        name: 'known macro fed mismatched args degrades',
+        src: wrap('', 'A \\textbf] B and more text.'),
+    },
+    {
+        name: 'unbalanced braces inside an argument degrade',
+        src: wrap('', '\\textbf{open {nested} and \\textit{x} done.'),
+    },
+    {
+        name: 'preamble-only macro in the body degrades',
+        src: wrap('', 'Body text \\documentclass{book} keeps going.'),
+    },
 ];
 
 let passed = 0;

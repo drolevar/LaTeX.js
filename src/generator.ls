@@ -210,9 +210,11 @@ export class Generator
                 name: macro
                 args: that.slice(1)
                 parsed: []
+                failed: false
             } else {
                 args: []
                 parsed: []
+                failed: false
             }
 
     # if next char matches the next arg of a branch, choose that branch
@@ -239,7 +241,22 @@ export class Generator
             true
 
     argError: (m) ->
+        # Strict mode: a known macro fed args that do not fit its spec
+        # is a hard error. Tolerant mode: flag the failure so the macro
+        # grammar rule re-emits the macro as an unsupported placeholder
+        # instead of aborting the whole document.
+        if @_options?.tolerant
+            @_curArgs.top.failed = true
+            return false
         error "macro \\#{@_curArgs.top.name}: #{m}"
+        return false
+
+    argsFailed: ->
+        # Two ways a known macro's arguments can fail: argError set the
+        # flag, or the arg loop ended with declared args still unparsed
+        # (it shifts an arg off before the parser runs, so a failed
+        # mandatory arg can leave either signal).
+        @_curArgs.top? and (!!@_curArgs.top.failed or @_curArgs.top.args.length != 0)
 
     # add the result of a parsed argument
     addParsedArg: (a) !->
@@ -256,7 +273,7 @@ export class Generator
     # remove arguments of a completely parsed macro from the stack
     endArgs: !->
         @_curArgs.pop!
-            ..args.length == 0 || error "grammar error: arguments for #{..name} have not been parsed: #{..args}"
+            ..args.length == 0 || @_options?.tolerant || error "grammar error: arguments for #{..name} have not been parsed: #{..args}"
             return ..parsed
 
 
@@ -287,7 +304,7 @@ export class Generator
             end = @macro "end" + id
 
         @exitGroup!
-        @isBalanced! or error "#{id}: groups need to be balanced in environments!"
+        @isBalanced! or @_options?.tolerant or error "#{id}: groups need to be balanced in environments!"
         @endBalanced!
 
         end
@@ -544,7 +561,7 @@ export class Generator
 
     # reset all descendants of c to 0
     clearCounter: (c) !->
-        for r in @_resets.get c
+        for r in @_resets.get(c) || []
             @clearCounter r
             @setCounter r, 0
 
