@@ -512,14 +512,20 @@ export class HtmlGenerator extends Generator
 
     ### private helpers
 
+    # Append children to parent. Children may be a single Node or a
+    # (possibly nested) array of Nodes, mixed with undefined holes -
+    # the same loose contract createFragment documents and flattens
+    # for. Flatten + drop non-Nodes here too: callers like create and
+    # createDocument hand us the parser's raw node lists directly
+    # (not via createFragment), and tolerant mode in particular can
+    # leave undefined holes or nested arrays in those lists. A strict
+    # DOM (Chromium/WebView2) throws "parameter 1 is not of type
+    # 'Node'" on such values; svgdom silently tolerates them, so this
+    # only surfaces in the browser.
     appendChildren = (parent, children) ->
-        if children
-            if Array.isArray children
-                for i to children.length
-                    parent.appendChild children[i] if children[i]?
-            else
-                parent.appendChild children
-
+        return parent if not children?
+        for child in compact flattenDeep [children]
+            parent.appendChild child if child?.nodeType
         return parent
 
 

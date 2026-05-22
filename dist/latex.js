@@ -43665,17 +43665,14 @@
 	    return nodes;
 	  };
 	  appendChildren = function(parent, children){
-	    var i$, to$, i;
-	    if (children) {
-	      if (Array.isArray(children)) {
-	        for (i$ = 0, to$ = children.length; i$ <= to$; ++i$) {
-	          i = i$;
-	          if (children[i] != null) {
-	            parent.appendChild(children[i]);
-	          }
-	        }
-	      } else {
-	        parent.appendChild(children);
+	    var i$, ref$, len$, child;
+	    if (children == null) {
+	      return parent;
+	    }
+	    for (i$ = 0, len$ = (ref$ = compact$1(flattenDeep$1([children]))).length; i$ < len$; ++i$) {
+	      child = ref$[i$];
+	      if (child != null && child.nodeType) {
+	        parent.appendChild(child);
 	      }
 	    }
 	    return parent;
