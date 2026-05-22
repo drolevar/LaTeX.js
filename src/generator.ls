@@ -152,6 +152,14 @@ export class Generator
         if symbols.has name
             return [ @createText symbols.get name ]
 
+        # The macro may be flagged as defined (hasMacro) yet have no
+        # callable impl - e.g. a list level beyond the 4 LaTeX.js
+        # defines, reached after tolerant over-deep nesting. Degrade to
+        # empty rather than crashing on .apply of undefined.
+        if typeof @_macros[name] != 'function'
+            error "no such macro: \\#{name}" if not @_options?.tolerant
+            return []
+
         @_macros[name]
             .apply @_macros, args
             ?.filter (x) -> x !~= undefined

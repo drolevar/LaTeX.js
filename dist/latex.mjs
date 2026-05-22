@@ -18524,11 +18524,17 @@ export$$1 = (function(){
     return ((ref$ = Macros.args[marco]) != null ? ref$[0] : void 8) === 'P';
   };
   Generator.prototype.macro = function(name, args){
-    var ref$, this$ = this;
+    var ref$, ref1$, this$ = this;
     if (symbols.has(name)) {
       return [this.createText(symbols.get(name))];
     }
-    return (ref$ = this._macros[name].apply(this._macros, args)) != null ? ref$.filter(function(x){
+    if (typeof this._macros[name] !== 'function') {
+      if (!((ref$ = this._options) != null && ref$.tolerant)) {
+        error("no such macro: \\" + name);
+      }
+      return [];
+    }
+    return (ref1$ = this._macros[name].apply(this._macros, args)) != null ? ref1$.filter(function(x){
       return x != undefined;
     }).map(function(x){
       if (typeof x === 'string' || x instanceof String) {
