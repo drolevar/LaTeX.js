@@ -82,6 +82,20 @@ const cases = [
         name: 'duplicate label',
         src: wrap('', '\\section{A}\\label{x} and \\section{B}\\label{x} again.'),
     },
+    {
+        name: 'enumitem star counter \\arabic*',
+        src: wrap('', 'Item label uses \\arabic* style.'),
+    },
+    {
+        name: 'lists nested past the depth limit',
+        src: wrap('',
+            '\\begin{itemize}\\item a\n'
+          + '\\begin{itemize}\\item b\n'
+          + '\\begin{itemize}\\item c\n'
+          + '\\begin{itemize}\\item d\n'
+          + '\\begin{itemize}\\item e\n'
+          + '\\end{itemize}\\end{itemize}\\end{itemize}\\end{itemize}\\end{itemize}'),
+    },
 ];
 
 let passed = 0;

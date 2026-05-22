@@ -392,7 +392,7 @@ export class LaTeX
         if &length == 0
             @g.startlist!
             @g.stepCounter \@itemdepth
-            @g.error "too deeply nested" if @g.counter(\@itemdepth) > 4
+            @g.error "too deeply nested" if @g.counter(\@itemdepth) > 4 and not @g._options?.tolerant
             return
 
         label = "labelitem" + @g.roman @g.counter \@itemdepth
@@ -419,7 +419,7 @@ export class LaTeX
         if &length == 0
             @g.startlist!
             @g.stepCounter \@enumdepth
-            @g.error "too deeply nested" if @g.counter(\@enumdepth) > 4
+            @g.error "too deeply nested" if @g.counter(\@enumdepth) > 4 and not @g._options?.tolerant
             return
 
         itemCounter = "enum" + @g.roman @g.counter \@enumdepth
@@ -1186,20 +1186,24 @@ export class LaTeX
 
     # formatting counters
 
+    # `s i?`: accept the enumitem star form (\arabic*, \roman*, ...)
+    # which refers to the enclosing list counter. We don't model that
+    # counter, so a starred (counter-less) use renders empty rather
+    # than aborting with "id group argument expected".
     args
      ..\alph =          \
      ..\Alph =          \
      ..\arabic =        \
      ..\roman =         \
      ..\Roman =         \
-     ..\fnsymbol =      <[ H i ]>
+     ..\fnsymbol =      <[ H s i? ]>
 
-    \alph               : (c) -> [ @g[\alph]     @g.counter c ]
-    \Alph               : (c) -> [ @g[\Alph]     @g.counter c ]
-    \arabic             : (c) -> [ @g[\arabic]   @g.counter c ]
-    \roman              : (c) -> [ @g[\roman]    @g.counter c ]
-    \Roman              : (c) -> [ @g[\Roman]    @g.counter c ]
-    \fnsymbol           : (c) -> [ @g[\fnsymbol] @g.counter c ]
+    \alph               : (star, c) -> if c then [ @g[\alph]     @g.counter c ] else []
+    \Alph               : (star, c) -> if c then [ @g[\Alph]     @g.counter c ] else []
+    \arabic             : (star, c) -> if c then [ @g[\arabic]   @g.counter c ] else []
+    \roman              : (star, c) -> if c then [ @g[\roman]    @g.counter c ] else []
+    \Roman              : (star, c) -> if c then [ @g[\Roman]    @g.counter c ] else []
+    \fnsymbol           : (star, c) -> if c then [ @g[\fnsymbol] @g.counter c ] else []
 
 
 

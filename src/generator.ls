@@ -376,7 +376,7 @@ export class Generator
 
     startlist: ->
         @stepCounter \@listdepth
-        if @counter(\@listdepth) > 6
+        if @counter(\@listdepth) > 6 and not @_options?.tolerant
             error "too deeply nested"
 
         true

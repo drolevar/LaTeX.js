@@ -17682,11 +17682,11 @@
 	  };
 	  args['itemize'] = ['V', 'X', 'items'];
 	  LaTeX.prototype['itemize'] = function(items){
-	    var label, this$ = this;
+	    var ref$, label, this$ = this;
 	    if (arguments.length === 0) {
 	      this.g.startlist();
 	      this.g.stepCounter('@itemdepth');
-	      if (this.g.counter('@itemdepth') > 4) {
+	      if (this.g.counter('@itemdepth') > 4 && !((ref$ = this.g._options) != null && ref$.tolerant)) {
 	        this.g.error("too deeply nested");
 	      }
 	      return;
@@ -17708,11 +17708,11 @@
 	  };
 	  args['enumerate'] = ['V', 'X', 'enumitems'];
 	  LaTeX.prototype['enumerate'] = function(items){
-	    var itemCounter, this$ = this;
+	    var ref$, itemCounter, this$ = this;
 	    if (arguments.length === 0) {
 	      this.g.startlist();
 	      this.g.stepCounter('@enumdepth');
-	      if (this.g.counter('@enumdepth') > 4) {
+	      if (this.g.counter('@enumdepth') > 4 && !((ref$ = this.g._options) != null && ref$.tolerant)) {
 	        this.g.error("too deeply nested");
 	      }
 	      return;
@@ -18262,24 +18262,48 @@
 	    return [this.g.refCounter(c)];
 	  };
 	  z12$ = args;
-	  z12$['alph'] = z12$['Alph'] = z12$['arabic'] = z12$['roman'] = z12$['Roman'] = z12$['fnsymbol'] = ['H', 'i'];
-	  LaTeX.prototype['alph'] = function(c){
-	    return [this.g['alph'](this.g.counter(c))];
+	  z12$['alph'] = z12$['Alph'] = z12$['arabic'] = z12$['roman'] = z12$['Roman'] = z12$['fnsymbol'] = ['H', 's', 'i?'];
+	  LaTeX.prototype['alph'] = function(star, c){
+	    if (c) {
+	      return [this.g['alph'](this.g.counter(c))];
+	    } else {
+	      return [];
+	    }
 	  };
-	  LaTeX.prototype['Alph'] = function(c){
-	    return [this.g['Alph'](this.g.counter(c))];
+	  LaTeX.prototype['Alph'] = function(star, c){
+	    if (c) {
+	      return [this.g['Alph'](this.g.counter(c))];
+	    } else {
+	      return [];
+	    }
 	  };
-	  LaTeX.prototype['arabic'] = function(c){
-	    return [this.g['arabic'](this.g.counter(c))];
+	  LaTeX.prototype['arabic'] = function(star, c){
+	    if (c) {
+	      return [this.g['arabic'](this.g.counter(c))];
+	    } else {
+	      return [];
+	    }
 	  };
-	  LaTeX.prototype['roman'] = function(c){
-	    return [this.g['roman'](this.g.counter(c))];
+	  LaTeX.prototype['roman'] = function(star, c){
+	    if (c) {
+	      return [this.g['roman'](this.g.counter(c))];
+	    } else {
+	      return [];
+	    }
 	  };
-	  LaTeX.prototype['Roman'] = function(c){
-	    return [this.g['Roman'](this.g.counter(c))];
+	  LaTeX.prototype['Roman'] = function(star, c){
+	    if (c) {
+	      return [this.g['Roman'](this.g.counter(c))];
+	    } else {
+	      return [];
+	    }
 	  };
-	  LaTeX.prototype['fnsymbol'] = function(c){
-	    return [this.g['fnsymbol'](this.g.counter(c))];
+	  LaTeX.prototype['fnsymbol'] = function(star, c){
+	    if (c) {
+	      return [this.g['fnsymbol'](this.g.counter(c))];
+	    } else {
+	      return [];
+	    }
 	  };
 	  args['input'] = ['V', 'g'];
 	  LaTeX.prototype['input'] = function(file){};
@@ -18703,8 +18727,9 @@
 	    return el;
 	  };
 	  Generator.prototype.startlist = function(){
+	    var ref$;
 	    this.stepCounter('@listdepth');
-	    if (this.counter('@listdepth') > 6) {
+	    if (this.counter('@listdepth') > 6 && !((ref$ = this._options) != null && ref$.tolerant)) {
 	      error("too deeply nested");
 	    }
 	    return true;
