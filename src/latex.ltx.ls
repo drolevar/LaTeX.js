@@ -1275,10 +1275,12 @@ export class LaTeX
     \includeonly        : (filelist) !->
 
 
-    args.\makeatletter  = <[ P ]>
+    # HV (not P): \makeatletter / \makeatother are valid in the body
+    # too, not just the preamble (papers use them mid-document).
+    args.\makeatletter  = <[ HV ]>
     \makeatletter       :!->
 
-    args.\makeatother   = <[ P ]>
+    args.\makeatother   = <[ HV ]>
     \makeatother        :!->
 
 

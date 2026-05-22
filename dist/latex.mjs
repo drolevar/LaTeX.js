@@ -18882,9 +18882,9 @@ export$$2 = (function(){
   };
   args['includeonly'] = ['P', 'csv'];
   LaTeX.prototype['includeonly'] = function(filelist){};
-  args['makeatletter'] = ['P'];
+  args['makeatletter'] = ['HV'];
   LaTeX.prototype['makeatletter'] = function(){};
-  args['makeatother'] = ['P'];
+  args['makeatother'] = ['HV'];
   LaTeX.prototype['makeatother'] = function(){};
   z13$ = args;
   z13$['pagestyle'] = ['HV', 'i'];

@@ -134,6 +134,10 @@ const cases = [
         name: 'group underflow (extra closing brace)',
         src: wrap('', 'Text with an extra closing brace } here.'),
     },
+    {
+        name: '\\makeatletter in the document body',
+        src: wrap('', 'Before. \\makeatletter \\makeatother After.'),
+    },
 ];
 
 let passed = 0;
