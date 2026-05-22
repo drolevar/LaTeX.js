@@ -48,13 +48,17 @@ document =
     skip_all_space            // drop spaces at the beginning of the document
     pars:(
         paragraph
-        // Tolerant body recovery: when a construct can't be parsed
-        // (a starred float's leftover [pos], an unsupported package
-        // macro, ...), paragraph* would otherwise stop short of
-        // \end{document} and the whole parse fails with "\end{document}
-        // missing". Skip one char and keep going so the rest of the
-        // body still renders. Guarded by !end_doc so we never consume
-        // the closing \end{document}.
+        // Tolerant body recovery: a construct paragraph* can't parse
+        // would otherwise stop short of \end{document} and fail the whole
+        // parse. Keep going. For a stray control sequence, consume the
+        // whole \macro and emit a reported placeholder rather than
+        // stripping its backslash (which split "\foo" into "foo" text);
+        // \begin/\end go to the char path so env markers stay intact.
+        // Else skip one char. Guarded so we never eat \end{document}.
+      / &{ return g && g._options && g._options.tolerant; }
+        !(escape end _ begin_group "document" end_group)
+        escape !begin !end m:identifier (_ opt_group)?
+        { return g.createFragment(g.unknownMacro(m)); }
       / &{ return g && g._options && g._options.tolerant; }
         !(escape end _ begin_group "document" end_group)
         . { return undefined; }
