@@ -78,6 +78,10 @@ const cases = [
         name: 'rgb color spec with spaces',
         src: wrap('\\usepackage{xcolor}\n\\definecolor{db}{rgb}{0, 0, 0.5}\n', 'Body.'),
     },
+    {
+        name: 'duplicate label',
+        src: wrap('', '\\section{A}\\label{x} and \\section{B}\\label{x} again.'),
+    },
 ];
 
 let passed = 0;

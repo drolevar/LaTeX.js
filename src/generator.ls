@@ -572,7 +572,13 @@ export class Generator
 
     # labels are possible for: parts, chapters, all sections, \items, footnotes, minipage-footnotes, tables, figures
     setLabel: (label) !->
-        error "label #{label} already defined!" if @_labels.has label
+        # A duplicate \label is a warning in real LaTeX, not fatal.
+        # Tolerant mode keeps the first definition and carries on
+        # (the body-recovery skip can also re-feed a label).
+        if @_labels.has label
+            error "label #{label} already defined!" if not @_options?.tolerant
+            console.warn "tolerant: duplicate label #{label}"
+            return
 
         if not @_stack.top.currentlabel.id
             console.warn "warning: no \\@currentlabel available for label #{label}!"

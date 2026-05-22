@@ -42,7 +42,19 @@ end_doc =
 document =
     & { g.startBalanced(); g.enterGroup(); return true; }
     skip_all_space            // drop spaces at the beginning of the document
-    pars:paragraph*
+    pars:(
+        paragraph
+        // Tolerant body recovery: when a construct can't be parsed
+        // (a starred float's leftover [pos], an unsupported package
+        // macro, ...), paragraph* would otherwise stop short of
+        // \end{document} and the whole parse fails with "\end{document}
+        // missing". Skip one char and keep going so the rest of the
+        // body still renders. Guarded by !end_doc so we never consume
+        // the closing \end{document}.
+      / &{ return g && g._options && g._options.tolerant; }
+        !(escape end _ begin_group "document" end_group)
+        . { return undefined; }
+    )*
     skip_all_space            // drop spaces at the end of the document
     {
         // Tolerant mode: real-world preambles leave the parser's group
