@@ -751,11 +751,18 @@ var latexParser_pegjs = /*
         peg$c7 = function() { g.macro("documentclass", [null, g.documentClass, null]); return true; },
         peg$c8 = function() { g.startBalanced(); g.enterGroup(); return true; },
         peg$c9 = function(pars) {
+                // Tolerant mode: real-world preambles leave the parser's group
+                // bookkeeping unbalanced (TeX \def redefinitions, \makeatletter
+                // internals, package tricks LaTeX.js doesn't model). The body
+                // paragraphs were still parsed, so recover and render them
+                // rather than aborting the whole document. Strict mode keeps the
+                // original hard errors.
+                var tol = g._options && g._options.tolerant;
                 g.exitGroup();
-                g.isBalanced() || error("groups need to be balanced!");
+                g.isBalanced() || tol || error("groups need to be balanced!");
                 var l = g.endBalanced();
                 // this error should be impossible, it's just to be safe
-                l == 1 && g.isBalanced() || error("grammar error: " + l + " levels of balancing are remaining, or the last level is unbalanced!");
+                l == 1 && g.isBalanced() || tol || error("grammar error: " + l + " levels of balancing are remaining, or the last level is unbalanced!");
 
                 g.createDocument(pars);
                 g.logUndefinedRefs();
