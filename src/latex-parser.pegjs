@@ -889,7 +889,25 @@ math_env =
     body:$(!(escape end _ begin_group $math_env_name end_group) .)*
     escape end _ begin_group end_name:$math_env_name end_group
     & { return name === end_name; }
-    { return g.parseMath('\\begin{' + name + '}' + body + '\\end{' + name + '}', true); }
+    {
+        // KaTeX implements equation/align/gather/alignat (+ starred)
+        // natively but NOT eqnarray, multline or displaymath. Map the
+        // unsupported names onto the closest KaTeX env that renders
+        // their body unchanged:
+        //   eqnarray  -> align   (KaTeX accepts the rcl a &=& b body)
+        //   multline  -> gather  (both are \\-separated, no &)
+        //   displaymath has no array structure - it is just display
+        //     mode, so emit the body directly with no env wrapper.
+        if (name === 'displaymath')
+            return g.parseMath(body, true);
+
+        var katexName = name === 'eqnarray'  ? 'align'
+                      : name === 'eqnarray*' ? 'align*'
+                      : name === 'multline'  ? 'gather'
+                      : name === 'multline*' ? 'gather*'
+                      : name;
+        return g.parseMath('\\begin{' + katexName + '}' + body + '\\end{' + katexName + '}', true);
+    }
 
 math_env_name "math environment name" =
     ("equation" "*"?)

@@ -1202,7 +1202,25 @@ var latexParser_pegjs = /*
         peg$c306 = function(m) { return g.parseMath(m, false); },
         peg$c307 = function(m) { return g.parseMath(m, true); },
         peg$c308 = function(name, body, end_name) { return name === end_name; },
-        peg$c309 = function(name, body, end_name) { return g.parseMath('\\begin{' + name + '}' + body + '\\end{' + name + '}', true); },
+        peg$c309 = function(name, body, end_name) {
+                // KaTeX implements equation/align/gather/alignat (+ starred)
+                // natively but NOT eqnarray, multline or displaymath. Map the
+                // unsupported names onto the closest KaTeX env that renders
+                // their body unchanged:
+                //   eqnarray  -> align   (KaTeX accepts the rcl a &=& b body)
+                //   multline  -> gather  (both are \\-separated, no &)
+                //   displaymath has no array structure - it is just display
+                //     mode, so emit the body directly with no env wrapper.
+                if (name === 'displaymath')
+                    return g.parseMath(body, true);
+
+                var katexName = name === 'eqnarray'  ? 'align'
+                              : name === 'eqnarray*' ? 'align*'
+                              : name === 'multline'  ? 'gather'
+                              : name === 'multline*' ? 'gather*'
+                              : name;
+                return g.parseMath('\\begin{' + katexName + '}' + body + '\\end{' + katexName + '}', true);
+            },
         peg$c310 = peg$otherExpectation("math environment name"),
         peg$c311 = "equation",
         peg$c312 = peg$literalExpectation("equation", false),

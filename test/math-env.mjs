@@ -44,11 +44,16 @@ let failed = 0;
 for (const { name, src } of cases) {
     try {
         const doc = render(src);
-        assert.ok(doc.body.innerHTML.length > 0,
-                  `body innerHTML empty for ${name}`);
         const html = doc.body.innerHTML;
-        assert.ok(html.includes('katex') || html.includes('mord'),
-                  `${name}: missing KaTeX output in HTML (got first 200 chars: ${html.slice(0, 200)})`);
+        assert.ok(html.length > 0, `body innerHTML empty for ${name}`);
+        assert.ok(html.includes('katex'),
+                  `${name}: missing KaTeX output (first 200: ${html.slice(0, 200)})`);
+        // A KaTeX *error* still emits a span with the katex class, so
+        // "contains katex" is not enough - the original weak assertion
+        // let \begin{eqnarray} (unsupported by KaTeX) pass silently.
+        // Assert the body carries NO error marker.
+        assert.ok(!html.includes('katex-error') && !html.includes('ParseError'),
+                  `${name}: KaTeX emitted an error span`);
         console.log(`ok   ${name}`);
         passed++;
     } catch (e) {
