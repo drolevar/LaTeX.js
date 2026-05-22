@@ -398,13 +398,19 @@ export class Generator
         @_stack.top.lengths.has l
 
     setLength: (id, length) !->
-        error "no such length: #{id}" if not @hasLength id
-        # console.log "set length:", id, length
+        # Unknown lengths (\topskip and other engine/class lengths
+        # LaTeX.js does not define) abort in strict mode; tolerant mode
+        # auto-creates them so \setlength keeps the document rendering.
+        if not @hasLength id
+            error "no such length: #{id}" if not @_options?.tolerant
+            console.warn "tolerant: auto-creating unknown length #{id}"
         @_stack.top.lengths.set id, length
 
     length: (l) ->
-        error "no such length: #{l}" if not @hasLength l
-        # console.log "get length: #{l} -> #{}"
+        if not @hasLength l
+            error "no such length: #{l}" if not @_options?.tolerant
+            console.warn "tolerant: reading unknown length #{l} as 0"
+            return @Length.zero
         @_stack.top.lengths.get l
 
     theLength: (id) ->

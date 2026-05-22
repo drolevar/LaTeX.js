@@ -57,6 +57,22 @@ const cases = [
         name: 'definecolor HTML hex model',
         src: wrap('\\usepackage{xcolor}\n\\definecolor{RuriIro}{HTML}{1E50A2}\n', 'Body.'),
     },
+    {
+        name: 'underscore in \\label/\\ref key',
+        src: wrap('', '\\label{sec:question_B}See \\ref{sec:question_B}.'),
+    },
+    {
+        name: 'literal [brackets] inside an argument',
+        src: wrap('\\usepackage{xcolor}\n', 'A \\textcolor{red}{[note] text} here.'),
+    },
+    {
+        name: 'unknown length via \\setlength',
+        src: wrap('\\setlength{\\topskip}{12pt}\n', 'Body.'),
+    },
+    {
+        name: 'rgb color spec with spaces',
+        src: wrap('\\usepackage{xcolor}\n\\definecolor{db}{rgb}{0, 0, 0.5}\n', 'Body.'),
+    },
 ];
 
 let passed = 0;

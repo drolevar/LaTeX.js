@@ -100,6 +100,18 @@ text "text" =
     / (&unskip_macro _)? m:hmode_macro          { return m; }
     / math
 
+    // Tolerant mode: a char that text mode can't place - _ ^ # or a
+    // literal ] - is a LaTeX error, but real papers hit them in
+    // ref/label keys (\ref{sec:question_B}), emails, file paths,
+    // parameter tokens (#1) nested in a colored arg, and literal
+    // brackets inside an argument (\textcolor{red}{[note]}, where ] is
+    // otherwise reserved for closing an optional group). Tried LAST
+    // (after math and the real macro/parameter/optgroup rules), so it
+    // only rescues a char that would otherwise abort the enclosing
+    // group - it can't steal a ] that actually closes an optional arg.
+    / &{ return g && g._options && g._options.tolerant; }
+      c:$([_^#\]])                                { return g.createText(c); }
+
     // groups
     / begin_group                             & { g.enterGroup(true); return true; } // copy attributes
       s:space?                                  { return g.createText(s); }
@@ -235,7 +247,12 @@ identifier "identifier" =
 
 // key can contain pretty much anything but = and ,
 key =
-    $(char / digit / sp / [-$&_/@] / ![=,] utf8_char)+
+    // `escape identifier` lets a key-value value reference a length
+    // macro, e.g. \includegraphics[width=0.48\textwidth]. Without it
+    // `key` stops at the backslash, leaving \textwidth] to break the
+    // optional-group and abort the macro. The value is captured as a
+    // string; graphicx/keyval consume it downstream.
+    $(char / digit / sp / [-$&_/@] / escape identifier / ![=,] utf8_char)+
 
 key_val "key=value" =
     k:key v:(_ '=' _ v:(key / &{ error("value expected") }) { return v.trim(); })?
@@ -620,8 +637,11 @@ model_list      = core:(core_model ":")? cm:color_model cml:("/" color_model)*
                   // rgb/gray float list (which has '.' or ',') still
                   // falls through to the float branch.
 color_spec      = h:$([0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]) ![0-9a-fA-F.] { return h; }
-                / f:float fl:((sp / ",") float)*
-                  { var list = [ f ]; fl.forEach(f => list.push(f[1])); return list; }
+                  // Separator tolerates spaces around commas and
+                  // space-only separation, e.g. {rgb}{0, 0, 0.5} or
+                  // {0 0 0.5} - real papers are not consistent here.
+                / f:float fl:((sp+ / _ "," _) ff:float { return ff; })*
+                  { var list = [ f ]; fl.forEach(ff => list.push(ff)); return list; }
                 / c_name
 
 color_spec_list = cs:color_spec csl:("/" color_spec)*
