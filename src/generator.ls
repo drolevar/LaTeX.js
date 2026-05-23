@@ -31,6 +31,7 @@ export class Generator
     _labels: null
     _refs: null
     _degradations: null
+    _citations: null
 
     _counters: null
     _resets: null
@@ -66,6 +67,7 @@ export class Generator
 
         @_labels = new Map()
         @_refs = new Map()
+        @_citations = new Map()
         @_degradations = []
 
         @_marginpars = []
@@ -697,6 +699,34 @@ export class Generator
             console.warn "warning: reference '#{ref.value}' undefined"
 
         console.warn "There were undefined references."
+
+
+    # citations: assign a number on first encounter (appearance order)
+    # and return { id, n }. \cite renders the number + a link to #id;
+    # the reference list (\bibliography) is built later from this map.
+    citation: (key) ->
+        return that if @_citations.get key
+        entry = { id: "cite-" + key, n: @_citations.size + 1 }
+        @_citations.set key, entry
+        entry
+
+    # build the node for \cite{k1,k2}: each key -> a link whose text is
+    # its appearance-order number. bracketed wraps the group in [ ]
+    # (\cite, \citep); \citet (in-text) omits the brackets.
+    cite: (keys, bracketed) ->
+        children = []
+        first = true
+        for raw in keys.split ","
+            k = raw.trim!
+            continue if not k
+            children.push @createText ", " if not first
+            first := false
+            c = @citation k
+            children.push @create (@link "#" + c.id), @createText String c.n
+        if bracketed
+            children.unshift @createText "["
+            children.push @createText "]"
+        @create @inline, children, "cite"
 
 
     ### marginpar
