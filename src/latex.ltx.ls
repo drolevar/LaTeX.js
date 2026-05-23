@@ -493,6 +493,15 @@ export class LaTeX
     args.\ref =         <[ H g ]>
     \ref                : (label) -> [ @g.ref label.textContent ]
 
+    # No bibliography processing, so render the cited keys as bracketed
+    # text rather than a placeholder. \citet drops the brackets.
+    args.\cite =        <[ H o? g ]>
+    \cite               : (opt, keys) -> [ @g.create @g.inline, @g.createText("[" + keys.textContent + "]"), "cite" ]
+    args.\citep =       <[ H o? g ]>
+    \citep              : (opt, keys) -> [ @g.create @g.inline, @g.createText("[" + keys.textContent + "]"), "cite" ]
+    args.\citet =       <[ H o? g ]>
+    \citet              : (opt, keys) -> [ @g.create @g.inline, @g.createText(keys.textContent), "cite" ]
+
 
 
     #########

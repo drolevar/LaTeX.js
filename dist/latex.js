@@ -18621,6 +18621,18 @@
 	  LaTeX.prototype['ref'] = function(label){
 	    return [this.g.ref(label.textContent)];
 	  };
+	  args['cite'] = ['H', 'o?', 'g'];
+	  LaTeX.prototype['cite'] = function(opt, keys){
+	    return [this.g.create(this.g.inline, this.g.createText("[" + keys.textContent + "]"), "cite")];
+	  };
+	  args['citep'] = ['H', 'o?', 'g'];
+	  LaTeX.prototype['citep'] = function(opt, keys){
+	    return [this.g.create(this.g.inline, this.g.createText("[" + keys.textContent + "]"), "cite")];
+	  };
+	  args['citet'] = ['H', 'o?', 'g'];
+	  LaTeX.prototype['citet'] = function(opt, keys){
+	    return [this.g.create(this.g.inline, this.g.createText(keys.textContent), "cite")];
+	  };
 	  z10$ = args;
 	  z10$['llap'] = z10$['rlap'] = z10$['clap'] = z10$['smash'] = z10$['hphantom'] = z10$['vphantom'] = z10$['phantom'] = ['H', 'hg'];
 	  LaTeX.prototype['llap'] = function(txt){
