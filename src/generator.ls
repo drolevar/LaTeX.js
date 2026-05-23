@@ -113,6 +113,23 @@ export class Generator
 
     setErrorFn: (e) !->
         error := e
+        @_errorFn = e
+
+    # parse a body-level fragment into THIS generator (re-entrant). Saves
+    # and restores the parser-bound location/error fn the nested parse
+    # clobbers. Tolerant: a failed fragment parse degrades, never throws.
+    reparse: (content) ->
+        return @createFragment! if not content
+        savedLoc = @location
+        savedErr = @_errorFn
+        try
+            nodes = @_reparse content
+        catch e
+            nodes = @unsupportedNode \input, "input", "input parse failed: #{e.message}"
+        finally
+            @location = savedLoc if savedLoc
+            @setErrorFn savedErr if savedErr
+        nodes
 
     # Tolerant-mode fallback for the PEG grammar's unknown_macro
     # rule. Strict mode keeps the original throwing behaviour;

@@ -13,7 +13,7 @@ const prod = process.env.NODE_ENV === "production"
 const buildPlugins = () => [
     // resolve before pegjs so that the filter in pegjs has less left to do
     resolve({extensions: [".js", ".ls"], preferBuiltins: true}),
-    pegjs({plugins: [ignoreInfiniteLoop], target: "commonjs", exportVar: "parser", format: "bare", trace: false}),
+    pegjs({plugins: [ignoreInfiniteLoop], target: "commonjs", exportVar: "parser", format: "bare", trace: false, allowedStartRules: ["latex", "fragment"]}),
     livescript(),
     commonjs({ ignoreDynamicRequires: true }),
     visualizer({

@@ -46,23 +46,7 @@ end_doc =
 document =
     & { g.startBalanced(); g.enterGroup(); return true; }
     skip_all_space            // drop spaces at the beginning of the document
-    pars:(
-        paragraph
-        // Tolerant body recovery: a construct paragraph* can't parse
-        // would otherwise stop short of \end{document} and fail the whole
-        // parse. Keep going. For a stray control sequence, consume the
-        // whole \macro and emit a reported placeholder rather than
-        // stripping its backslash (which split "\foo" into "foo" text);
-        // \begin/\end go to the char path so env markers stay intact.
-        // Else skip one char. Guarded so we never eat \end{document}.
-      / &{ return g && g._options && g._options.tolerant; }
-        !(escape end _ begin_group "document" end_group)
-        escape !begin !end m:identifier (_ opt_group)?
-        { return g.createFragment(g.unknownMacro(m)); }
-      / &{ return g && g._options && g._options.tolerant; }
-        !(escape end _ begin_group "document" end_group)
-        . { return undefined; }
-    )*
+    pars:body_paragraphs
     skip_all_space            // drop spaces at the end of the document
     {
         // Tolerant mode: real-world preambles leave the parser's group
@@ -82,6 +66,36 @@ document =
         g.logUndefinedRefs();
         return g;
     }
+
+
+body_paragraphs =
+    pars:(
+        paragraph
+        // Tolerant body recovery: a construct paragraph* can't parse
+        // would otherwise stop short of \end{document} and fail the whole
+        // parse. Keep going. For a stray control sequence, consume the
+        // whole \macro and emit a reported placeholder rather than
+        // stripping its backslash (which split "\foo" into "foo" text);
+        // \begin/\end go to the char path so env markers stay intact.
+        // Else skip one char. Guarded so we never eat \end{document}.
+      / &{ return g && g._options && g._options.tolerant; }
+        !(escape end _ begin_group "document" end_group)
+        escape !begin !end m:identifier (_ opt_group)?
+        { return g.createFragment(g.unknownMacro(m)); }
+      / &{ return g && g._options && g._options.tolerant; }
+        !(escape end _ begin_group "document" end_group)
+        . { return undefined; }
+    )*
+    { return pars; }
+
+// re-entrant body parse (\input, \newcommand bodies): body content with
+// no \begin{document} wrapper, parsed into the already-open generator.
+fragment =
+    skip_all_space
+    pars:body_paragraphs
+    skip_all_space
+    EOF
+    { return g.createFragment(pars); }
 
 
 

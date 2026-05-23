@@ -1256,9 +1256,17 @@ export class LaTeX
 
     args.\input =       <[ V g ]>
     \input              : (file) ->
+        name = file.textContent
+        name += ".tex" if not /\.[a-z]+$/i.test name
+        read = @g._options?.readFile
+        return [ @g.unsupportedNode \input, "input", "no readFile for \\input{#{name}}" ] if typeof read != "function"
+        content = read name
+        return [ @g.unsupportedNode \input, "input", "file not found: #{name}" ] if not content
+        [ @g.reparse content ]
 
     args.\include =     <[ V g ]>
     \include            : (file) ->
+        @\input file
 
 
     ############
