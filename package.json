@@ -41,7 +41,7 @@
     "devdocs": "npm run devbuild;vuepress dev docs --no-clear-screen --debug;",
     "docs": "npm run build;[ ! -d website ] && git worktree add website gh-pages;mv website/.git .website.git;vuepress build docs;mv .website.git website/.git;cd website;git add .;git commit -m 'regenerated website';",
     "test": "mocha test/*.ls;",
-    "gates": "node test/tolerant.mjs && node test/math-env.mjs && node test/corpus.mjs && node test/degradation.mjs && node test/bibtex-parse.mjs && node test/bibliography.mjs && node test/equation-ref.mjs",
+    "gates": "node test/tolerant.mjs && node test/math-env.mjs && node test/corpus.mjs && node test/degradation.mjs && node test/bibtex-parse.mjs && node test/bibliography.mjs && node test/equation-ref.mjs && node test/crossref.mjs",
     "iron": "iron-node node_modules/.bin/_mocha test/*.ls;",
     "testc": "nyc --include=bin --include=src --include=dist -e ls --reporter=html --reporter=text --reporter=lcovonly --report-dir=test/coverage             npx mocha -i -g screenshot --reporter mocha-junit-reporter --reporter-options mochaFile=./test/test-results.xml test/*.ls&&npx mocha -g screenshot --reporter mocha-junit-reporter --reporter-options mochaFile=./test/screenshots/test-results.xml test/*.ls;",
     "codecov": "codecov;"

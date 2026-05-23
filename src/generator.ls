@@ -59,6 +59,7 @@ export class Generator
             align: null
             currentlabel:
                 id: ""
+                type: ""
                 label: document.createTextNode ""
             lengths: new Map()
         ]
@@ -70,6 +71,7 @@ export class Generator
         @_refs = new Map()
         @_citations = new Map()
         @_degradations = []
+        @_crefNames = {}
 
         @_marginpars = []
 
@@ -555,6 +557,7 @@ export class Generator
         # currentlabel stores the id of the anchor to link to, as well as the label to display in a \ref{}
         @_stack.top.currentlabel =
             id: id
+            type: c
             label: @createFragment [
                 ...if @hasMacro(\p@ + c) then @macro(\p@ + c) else []
                 ...@macro(\the + c)
@@ -713,6 +716,30 @@ export class Generator
         while node and node.nodeType != 1
             node = node.nextSibling
         node.id = id if node
+
+
+    # cref display name for a label type. Defaults to the type/counter
+    # name itself (equation -> "equation", figure -> "figure", section ->
+    # "section"); overridable via @_crefNames (theorems register a title).
+    crefName: (type) ->
+        @_crefNames[type] or type
+
+    # cleveref-style typed reference: "<name> <numberlink>". cap=true
+    # capitalizes the name (\Cref). Equation types parenthesize the
+    # number (matching \eqref). Unknown/undefined label -> fall back to a
+    # bare \ref (number link / ??, no name) so it never throws.
+    cref: (label, cap) ->
+        entry = @_labels.get label
+        return @ref label if not entry or not entry.type
+        name = @crefName entry.type
+        name = name.charAt(0).toUpperCase() + name.slice(1) if cap
+        link = @create (@link "#" + entry.id), entry.label.cloneNode true
+        inner =
+            if entry.type == \equation
+                [ @createText("#{name} ("), link, @createText(")") ]
+            else
+                [ @createText("#{name} "), link ]
+        @create @inline, inner, "cref"
 
 
     logUndefinedRefs: !->

@@ -498,6 +498,11 @@ export class LaTeX
         [ @g.createText("("), @g.ref(label.textContent), @g.createText(")") ],
         "eqref" ]
 
+    args.\cref =        <[ H g ]>
+    \cref               : (label) -> [ @g.cref label.textContent, false ]
+    args.\Cref =        <[ H g ]>
+    \Cref               : (label) -> [ @g.cref label.textContent, true ]
+
     # Citations resolve to appearance-ordered links into the reference
     # list built by \bibliography. \citet is the in-text form (no
     # brackets); \cite / \citep are bracketed.
