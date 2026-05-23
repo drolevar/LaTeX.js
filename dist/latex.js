@@ -1246,14 +1246,12 @@
 	        peg$c328 = function(m) { return g.parseMath(m, true); },
 	        peg$c329 = function(name, body, end_name) { return name === end_name; },
 	        peg$c330 = function(name, body, end_name) {
-	                // KaTeX implements equation/align/gather/alignat (+ starred)
-	                // natively but NOT eqnarray, multline or displaymath. Map the
-	                // unsupported names onto the closest KaTeX env that renders
-	                // their body unchanged:
-	                //   eqnarray  -> align   (KaTeX accepts the rcl a &=& b body)
-	                //   multline  -> gather  (both are \\-separated, no &)
-	                //   displaymath has no array structure - it is just display
-	                //     mode, so emit the body directly with no env wrapper.
+	                // Pull \label out of the math body before KaTeX sees it (KaTeX
+	                // renders \label as a red error token). A numbered equation
+	                // registers them against its number; other envs just drop them.
+	                var labels = [];
+	                body = body.replace(/\\label\s*\x7b([^\x7d]*)\x7d/g, function(_m, n) { labels.push(n.trim()); return ""; });
+
 	                if (name === 'displaymath')
 	                    return g.parseMath(body, true);
 
@@ -1262,7 +1260,16 @@
 	                              : name === 'multline'  ? 'gather'
 	                              : name === 'multline*' ? 'gather*'
 	                              : name;
-	                return g.parseMath('\\begin{' + katexName + '}' + body + '\\end{' + katexName + '}', true);
+
+	                var id = null;
+	                if (name === 'equation' && !/\\tag\b/.test(body)) {
+	                    id = g.equationLabel(labels);
+	                    body += '\\tag{(' + g.counter('equation') + ')}';
+	                }
+	                var frag = g.parseMath('\\begin{' + katexName + '}' + body
+	                                       + '\\end{' + katexName + '}', true);
+	                if (id) g.setNodeId(frag, id);
+	                return frag;
 	            },
 	        peg$c331 = peg$otherExpectation("math environment name"),
 	        peg$c332 = "equation",
@@ -18621,6 +18628,10 @@
 	  LaTeX.prototype['ref'] = function(label){
 	    return [this.g.ref(label.textContent)];
 	  };
+	  args['eqref'] = ['H', 'g'];
+	  LaTeX.prototype['eqref'] = function(label){
+	    return [this.g.create(this.g.inline, [this.g.createText("("), this.g.ref(label.textContent), this.g.createText(")")], "eqref")];
+	  };
 	  args['cite'] = ['H', 'o?', 'g'];
 	  LaTeX.prototype['cite'] = function(opt, keys){
 	    return [this.g.cite(keys.textContent, true)];
@@ -19691,6 +19702,7 @@
 	    this.newCounter('enumiii');
 	    this.newCounter('enumiv');
 	    this._macros = new Macros(this, this._options.CustomMacros);
+	    this.newCounter('equation');
 	  };
 	  Generator.prototype.nextId = function(){
 	    return this._uid++;
@@ -20235,6 +20247,32 @@
 	      this._refs.get(label).push(el);
 	    }
 	    return el;
+	  };
+	  Generator.prototype.equationLabel = function(labels){
+	    var id, i$, len$, n;
+	    this.stepCounter('equation');
+	    id = "eq-" + this.nextId();
+	    this.refCounter('equation', id);
+	    for (i$ = 0, len$ = labels.length; i$ < len$; ++i$) {
+	      n = labels[i$];
+	      if (n.length) {
+	        this.setLabel(n);
+	      }
+	    }
+	    return id;
+	  };
+	  Generator.prototype.setNodeId = function(frag, id){
+	    var node;
+	    if (!frag) {
+	      return;
+	    }
+	    node = frag.firstChild;
+	    while (node && node.nodeType !== 1) {
+	      node = node.nextSibling;
+	    }
+	    if (node) {
+	      node.id = id;
+	    }
 	  };
 	  Generator.prototype.logUndefinedRefs = function(){
 	    var keys, ref;
