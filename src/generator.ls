@@ -72,6 +72,7 @@ export class Generator
         @_citations = new Map()
         @_degradations = []
         @_crefNames = {}
+        @_captionType = null
 
         @_marginpars = []
 
@@ -740,6 +741,30 @@ export class Generator
             else
                 [ @createText("#{name} "), link ]
         @create @inline, inner, "cref"
+
+
+    # figure/table environments set the caption type so \caption knows
+    # which counter to step. No float positioning - rendered inline as a block.
+    beginFloat: (type) !->
+        @_captionType = type
+
+    endFloat: !->
+        @_captionType = null
+
+    # \caption: number the current float, anchor it (so \label/\ref/\cref
+    # land on the caption), and render "Figure N: <text>". Outside a float
+    # (@_captionType null) just render the text, no number, no throw.
+    caption: (txt) ->
+        type = @_captionType
+        return @create @block, txt, "caption" if not type
+        @stepCounter type
+        id = type + "-" + @nextId!
+        @refCounter type, id
+        name = type.charAt(0).toUpperCase() + type.slice(1)
+        head = @createFragment [ @createText("#{name} "), ...@macro(\the + type), @createText(": ") ]
+        el = @create @block, [ head, txt ], "caption"
+        el.id = id
+        el
 
 
     logUndefinedRefs: !->

@@ -385,6 +385,22 @@ export class LaTeX
     \endverse           :!-> @g.endlist!
 
 
+    # floats: figure, table (rendered inline-as-block; numbered via \caption)
+
+    args
+     ..\figure =        \
+     ..\table =         <[ V o? ]>
+
+    \figure             :->  @g.beginFloat \figure ; [ @g.create @g.block, null, "figure" ]
+    \endfigure          :!-> @g.endFloat!
+    \table              :->  @g.beginFloat \table ; [ @g.create @g.block, null, "table" ]
+    \endtable           :!-> @g.endFloat!
+
+    args
+     ..\caption =       <[ V o? g ]>
+    \caption            : (short, txt) -> [ @g.caption txt ]
+
+
     # lists: itemize, enumerate, description
 
     args.\itemize =     <[ V X items ]>
