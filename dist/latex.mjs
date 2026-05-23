@@ -18619,15 +18619,23 @@ export$$2 = (function(){
   };
   args['cite'] = ['H', 'o?', 'g'];
   LaTeX.prototype['cite'] = function(opt, keys){
-    return [this.g.create(this.g.inline, this.g.createText("[" + keys.textContent + "]"), "cite")];
+    return [this.g.cite(keys.textContent, true)];
   };
   args['citep'] = ['H', 'o?', 'g'];
   LaTeX.prototype['citep'] = function(opt, keys){
-    return [this.g.create(this.g.inline, this.g.createText("[" + keys.textContent + "]"), "cite")];
+    return [this.g.cite(keys.textContent, true)];
   };
   args['citet'] = ['H', 'o?', 'g'];
   LaTeX.prototype['citet'] = function(opt, keys){
-    return [this.g.create(this.g.inline, this.g.createText(keys.textContent), "cite")];
+    return [this.g.cite(keys.textContent, false)];
+  };
+  args['bibliography'] = ['V', 'g'];
+  LaTeX.prototype['bibliography'] = function(names){
+    return [this.g.bibliography(names.textContent)];
+  };
+  args['bibliographystyle'] = ['V', 'g'];
+  LaTeX.prototype['bibliographystyle'] = function(style){
+    return [];
   };
   z10$ = args;
   z10$['llap'] = z10$['rlap'] = z10$['clap'] = z10$['smash'] = z10$['hphantom'] = z10$['vphantom'] = z10$['phantom'] = ['H', 'hg'];
@@ -19280,6 +19288,344 @@ export$$2 = (function(){
   }
 }());
 
+var bibtexParse$1 = {};
+
+/* start bibtexParse 0.0.24 */
+
+(function (exports) {
+	//Original work by Henrik Muehe (c) 2010
+	//
+	//CommonJS port by Mikola Lysenko 2013
+	//
+	//Choice of compact (default) or pretty output from toBibtex:
+	//		Nick Bailey, 2017.
+	//
+	//Port to Browser lib by ORCID / RCPETERS
+	//
+	//Issues:
+	//no comment handling within strings
+	//no string concatenation
+	//no variable values yet
+	//Grammar implemented here:
+	//bibtex -> (string | preamble | comment | entry)*;
+	//string -> '@STRING' '{' key_equals_value '}';
+	//preamble -> '@PREAMBLE' '{' value '}';
+	//comment -> '@COMMENT' '{' value '}';
+	//entry -> '@' key '{' key ',' key_value_list '}';
+	//key_value_list -> key_equals_value (',' key_equals_value)*;
+	//key_equals_value -> key '=' value;
+	//value -> value_quotes | value_braces | key;
+	//value_quotes -> '"' .*? '"'; // not quite
+	//value_braces -> '{' .*? '"'; // not quite
+	(function(exports) {
+
+	    function BibtexParser() {
+
+	        this.months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+	        this.notKey = [',','{','}',' ','='];
+	        this.pos = 0;
+	        this.input = "";
+	        this.entries = new Array();
+
+	        this.currentEntry = "";
+
+	        this.setInput = function(t) {
+	            this.input = t;
+	        };
+
+	        this.getEntries = function() {
+	            return this.entries;
+	        };
+
+	        this.isWhitespace = function(s) {
+	            return (s == ' ' || s == '\r' || s == '\t' || s == '\n');
+	        };
+
+	        this.match = function(s, canCommentOut) {
+	            if (canCommentOut == undefined || canCommentOut == null)
+	                canCommentOut = true;
+	            this.skipWhitespace(canCommentOut);
+	            if (this.input.substring(this.pos, this.pos + s.length) == s) {
+	                this.pos += s.length;
+	            } else {
+	                throw TypeError("Token mismatch: match", "expected " + s + ", found "
+	                        + this.input.substring(this.pos));
+	            }	            this.skipWhitespace(canCommentOut);
+	        };
+
+	        this.tryMatch = function(s, canCommentOut) {
+	            if (canCommentOut == undefined || canCommentOut == null)
+	                canCommentOut = true;
+	            this.skipWhitespace(canCommentOut);
+	            if (this.input.substring(this.pos, this.pos + s.length) == s) {
+	                return true;
+	            } else {
+	                return false;
+	            }	        };
+
+	        /* when search for a match all text can be ignored, not just white space */
+	        this.matchAt = function() {
+	            while (this.input.length > this.pos && this.input[this.pos] != '@') {
+	                this.pos++;
+	            }
+	            if (this.input[this.pos] == '@') {
+	                return true;
+	            }	            return false;
+	        };
+
+	        this.skipWhitespace = function(canCommentOut) {
+	            while (this.isWhitespace(this.input[this.pos])) {
+	                this.pos++;
+	            }	            if (this.input[this.pos] == "%" && canCommentOut == true) {
+	                while (this.input[this.pos] != "\n") {
+	                    this.pos++;
+	                }	                this.skipWhitespace(canCommentOut);
+	            }	        };
+
+	        this.value_braces = function() {
+	            var bracecount = 0;
+	            this.match("{", false);
+	            var start = this.pos;
+	            var escaped = false;
+	            while (true) {
+	                if (!escaped) {
+	                    if (this.input[this.pos] == '}') {
+	                        if (bracecount > 0) {
+	                            bracecount--;
+	                        } else {
+	                            var end = this.pos;
+	                            this.match("}", false);
+	                            return this.input.substring(start, end);
+	                        }	                    } else if (this.input[this.pos] == '{') {
+	                        bracecount++;
+	                    } else if (this.pos >= this.input.length - 1) {
+	                        throw TypeError("Unterminated value: value_braces");
+	                    }	                }	                if (this.input[this.pos] == '\\' && escaped == false)
+	                    escaped = true;
+	                else
+	                    escaped = false;
+	                this.pos++;
+	            }	        };
+
+	        this.value_comment = function() {
+	            var str = '';
+	            var brcktCnt = 0;
+	            while (!(this.tryMatch("}", false) && brcktCnt == 0)) {
+	                str = str + this.input[this.pos];
+	                if (this.input[this.pos] == '{')
+	                    brcktCnt++;
+	                if (this.input[this.pos] == '}')
+	                    brcktCnt--;
+	                if (this.pos >= this.input.length - 1) {
+	                    throw TypeError("Unterminated value: value_comment", + this.input.substring(start));
+	                }	                this.pos++;
+	            }	            return str;
+	        };
+
+	        this.value_quotes = function() {
+	            this.match('"', false);
+	            var start = this.pos;
+	            var escaped = false;
+	            while (true) {
+	                if (!escaped) {
+	                    if (this.input[this.pos] == '"') {
+	                        var end = this.pos;
+	                        this.match('"', false);
+	                        return this.input.substring(start, end);
+	                    } else if (this.pos >= this.input.length - 1) {
+	                        throw TypeError("Unterminated value: value_quotes", this.input.substring(start));
+	                    }	                }
+	                if (this.input[this.pos] == '\\' && escaped == false)
+	                    escaped = true;
+	                else
+	                    escaped = false;
+	                this.pos++;
+	            }	        };
+
+	        this.single_value = function() {
+	            var start = this.pos;
+	            if (this.tryMatch("{")) {
+	                return this.value_braces();
+	            } else if (this.tryMatch('"')) {
+	                return this.value_quotes();
+	            } else {
+	                var k = this.key();
+	                if (k.match("^[0-9]+$"))
+	                    return k;
+	                else if (this.months.indexOf(k.toLowerCase()) >= 0)
+	                    return k.toLowerCase();
+	                else
+	                    throw "Value expected: single_value" + this.input.substring(start) + ' for key: ' + k;
+
+	            }	        };
+
+	        this.value = function() {
+	            var values = [];
+	            values.push(this.single_value());
+	            while (this.tryMatch("#")) {
+	                this.match("#");
+	                values.push(this.single_value());
+	            }	            return values.join("");
+	        };
+
+	        this.key = function(optional) {
+	            var start = this.pos;
+	            while (true) {
+	                if (this.pos >= this.input.length) {
+	                    throw TypeError("Runaway key: key");
+	                }	                                // а-яА-Я is Cyrillic
+	                //console.log(this.input[this.pos]);
+	                if (this.notKey.indexOf(this.input[this.pos]) >= 0) {
+	                    if (optional && this.input[this.pos] != ',') {
+	                        this.pos = start;
+	                        return null;
+	                    }	                    return this.input.substring(start, this.pos);
+	                } else {
+	                    this.pos++;
+
+	                }	            }	        };
+
+	        this.key_equals_value = function() {
+	            var key = this.key();
+	            if (this.tryMatch("=")) {
+	                this.match("=");
+	                var val = this.value();
+	                key = key.trim();
+	                return [ key, val ];
+	            } else {
+	                throw TypeError("Value expected, equals sign missing: key_equals_value",
+	                     this.input.substring(this.pos));
+	            }	        };
+
+	        this.key_value_list = function() {
+	            var kv = this.key_equals_value();
+	            this.currentEntry['entryTags'] = {};
+	            this.currentEntry['entryTags'][kv[0]] = kv[1];
+	            while (this.tryMatch(",")) {
+	                this.match(",");
+	                // fixes problems with commas at the end of a list
+	                if (this.tryMatch("}")) {
+	                    break;
+	                }
+	                kv = this.key_equals_value();
+	                this.currentEntry['entryTags'][kv[0]] = kv[1];
+	            }	        };
+
+	        this.entry_body = function(d) {
+	            this.currentEntry = {};
+	            this.currentEntry['citationKey'] = this.key(true);
+	            this.currentEntry['entryType'] = d.substring(1);
+	            if (this.currentEntry['citationKey'] != null) {
+	                this.match(",");
+	            }
+	            this.key_value_list();
+	            this.entries.push(this.currentEntry);
+	        };
+
+	        this.directive = function() {
+	            this.match("@");
+	            return "@" + this.key();
+	        };
+
+	        this.preamble = function() {
+	            this.currentEntry = {};
+	            this.currentEntry['entryType'] = 'PREAMBLE';
+	            this.currentEntry['entry'] = this.value_comment();
+	            this.entries.push(this.currentEntry);
+	        };
+
+	        this.comment = function() {
+	            this.currentEntry = {};
+	            this.currentEntry['entryType'] = 'COMMENT';
+	            this.currentEntry['entry'] = this.value_comment();
+	            this.entries.push(this.currentEntry);
+	        };
+
+	        this.entry = function(d) {
+	            this.entry_body(d);
+	        };
+
+	        this.alernativeCitationKey = function () {
+	            this.entries.forEach(function (entry) {
+	                if (!entry.citationKey && entry.entryTags) {
+	                    entry.citationKey = '';
+	                    if (entry.entryTags.author) {
+	                        entry.citationKey += entry.entryTags.author.split(',')[0] += ', ';
+	                    }
+	                    entry.citationKey += entry.entryTags.year;
+	                }
+	            });
+	        };
+
+	        this.bibtex = function() {
+	            while (this.matchAt()) {
+	                var d = this.directive();
+	                this.match("{");
+	                if (d.toUpperCase() == "@STRING") {
+	                    this.string();
+	                } else if (d.toUpperCase() == "@PREAMBLE") {
+	                    this.preamble();
+	                } else if (d.toUpperCase() == "@COMMENT") {
+	                    this.comment();
+	                } else {
+	                    this.entry(d);
+	                }
+	                this.match("}");
+	            }
+	            this.alernativeCitationKey();
+	        };
+	    }
+	    exports.toJSON = function(bibtex) {
+	        var b = new BibtexParser();
+	        b.setInput(bibtex);
+	        b.bibtex();
+	        return b.entries;
+	    };
+
+	    /* added during hackathon don't hate on me */
+	    /* Increased the amount of white-space to make entries
+	     * more attractive to humans. Pass compact as false
+	     * to enable */
+	    exports.toBibtex = function(json, compact) {
+	        if (compact === undefined) compact = true;
+	        var out = '';
+	        
+	        var entrysep = ',';
+	        var indent = '';
+	        if (!compact) {
+			      entrysep = ',\n';
+			      indent = '    ';        
+	        }
+	        for ( var i in json) {
+	            out += "@" + json[i].entryType;
+	            out += '{';
+	            if (json[i].citationKey)
+	                out += json[i].citationKey + entrysep;
+	            if (json[i].entry)
+	                out += json[i].entry ;
+	            if (json[i].entryTags) {
+	                var tags = indent;
+	                for (var jdx in json[i].entryTags) {
+	                    if (tags.trim().length != 0)
+	                        tags += entrysep + indent;
+	                    tags += jdx + (compact ? '={' : ' = {') + 
+	                            json[i].entryTags[jdx] + '}';
+	                }
+	                out += tags;
+	            }
+	            out += compact ? '}\n' : '\n}\n\n';
+	        }
+	        return out;
+
+	    };
+
+	})(exports);
+
+	/* end bibtexParse */ 
+} (bibtexParse$1));
+
+var bibtexParse = /*@__PURE__*/getDefaultExportFromCjs(bibtexParse$1);
+
 var export$$1;
 var Macros, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
 Macros = export$$2;
@@ -19306,6 +19652,7 @@ export$$1 = (function(){
   Generator.prototype._labels = null;
   Generator.prototype._refs = null;
   Generator.prototype._degradations = null;
+  Generator.prototype._citations = null;
   Generator.prototype._counters = null;
   Generator.prototype._resets = null;
   Generator.prototype._marginpars = null;
@@ -19329,6 +19676,7 @@ export$$1 = (function(){
     this._groups = [0];
     this._labels = new Map();
     this._refs = new Map();
+    this._citations = new Map();
     this._degradations = [];
     this._marginpars = [];
     this._counters = new Map();
@@ -19894,6 +20242,113 @@ export$$1 = (function(){
       console.warn("warning: reference '" + ref.value + "' undefined");
     }
     console.warn("There were undefined references.");
+  };
+  Generator.prototype.citation = function(key){
+    var that, entry;
+    if (that = this._citations.get(key)) {
+      return that;
+    }
+    entry = {
+      id: "cite-" + key,
+      n: this._citations.size + 1
+    };
+    this._citations.set(key, entry);
+    return entry;
+  };
+  Generator.prototype.cite = function(keys, bracketed){
+    var children, first, i$, ref$, len$, raw, k, c;
+    children = [];
+    first = true;
+    for (i$ = 0, len$ = (ref$ = keys.split(",")).length; i$ < len$; ++i$) {
+      raw = ref$[i$];
+      k = raw.trim();
+      if (!k) {
+        continue;
+      }
+      if (!first) {
+        children.push(this.createText(", "));
+      }
+      first = false;
+      c = this.citation(k);
+      children.push(this.create(this.link("#" + c.id), this.createText(String(c.n))));
+    }
+    if (bracketed) {
+      children.unshift(this.createText("["));
+      children.push(this.createText("]"));
+    }
+    return this.create(this.inline, children, "cite");
+  };
+  Generator.prototype.bibliography = function(names){
+    var read, ref$, entries, found, i$, ref1$, len$, raw, name, content, j$, ref2$, len1$, e, key, cited, items, res$, c, li, list;
+    read = (ref$ = this._options) != null ? ref$.readFile : void 8;
+    entries = {};
+    found = false;
+    if (typeof read === "function") {
+      for (i$ = 0, len$ = (ref1$ = names.split(",")).length; i$ < len$; ++i$) {
+        raw = ref1$[i$];
+        name = raw.trim();
+        if (!name) {
+          continue;
+        }
+        if (!/\.bib$/i.test(name)) {
+          name += ".bib";
+        }
+        content = read(name);
+        if (!content) {
+          continue;
+        }
+        found = true;
+        try {
+          for (j$ = 0, len1$ = (ref2$ = bibtexParse.toJSON(content)).length; j$ < len1$; ++j$) {
+            e = ref2$[j$];
+            key = (e.citationKey || "").toLowerCase();
+            if (key) {
+              entries[key] = e;
+            }
+          }
+        } catch (e$) {
+          e = e$;
+        }
+      }
+    }
+    if (!found) {
+      return this.unsupportedNode('bibliography', "bibliography", "no .bib content available via readFile");
+    }
+    cited = Array.from(this._citations.entries());
+    cited.sort(function(a, b){
+      return a[1].n - b[1].n;
+    });
+    res$ = [];
+    for (i$ = 0, len$ = cited.length; i$ < len$; ++i$) {
+      ref1$ = cited[i$], key = ref1$[0], c = ref1$[1];
+      e = entries[key.toLowerCase()];
+      li = this.create("li", this.formatBibEntry_(key, e));
+      li.id = c.id;
+      if (!e) {
+        li.setAttribute("data-unresolved", "");
+        this.reportDegradation('cite', key, "cited key not in .bib");
+      }
+      res$.push(li);
+    }
+    items = res$;
+    list = this.create("ol", items, "latex-bibliography");
+    return this.createFragment(this.create("h2", this.createText("References")), list);
+  };
+  Generator.prototype.formatBibEntry_ = function(key, e){
+    var t, lower, k, parts, text, own$ = {}.hasOwnProperty;
+    if (!e) {
+      return this.createText(key);
+    }
+    t = e.entryTags || {};
+    lower = {};
+    for (k in t) if (own$.call(t, k)) {
+      lower[k.toLowerCase()] = t[k];
+    }
+    parts = [lower.author, lower.title, lower.journal || lower.booktitle, lower.year];
+    text = parts.filter(function(x){
+      return x != null;
+    }).join(". ");
+    return this.createText(text ? text + "." : key);
   };
   Generator.prototype.marginpar = function(txt){
     var id, marginPar, marginRef;
