@@ -992,14 +992,12 @@ math_env =
     escape end _ begin_group end_name:$math_env_name end_group
     & { return name === end_name; }
     {
-        // KaTeX implements equation/align/gather/alignat (+ starred)
-        // natively but NOT eqnarray, multline or displaymath. Map the
-        // unsupported names onto the closest KaTeX env that renders
-        // their body unchanged:
-        //   eqnarray  -> align   (KaTeX accepts the rcl a &=& b body)
-        //   multline  -> gather  (both are \\-separated, no &)
-        //   displaymath has no array structure - it is just display
-        //     mode, so emit the body directly with no env wrapper.
+        // Pull \label out of the math body before KaTeX sees it (KaTeX
+        // renders \label as a red error token). A numbered equation
+        // registers them against its number; other envs just drop them.
+        var labels = [];
+        body = body.replace(/\\label\s*\x7b([^\x7d]*)\x7d/g, function(_m, n) { labels.push(n.trim()); return ""; });
+
         if (name === 'displaymath')
             return g.parseMath(body, true);
 
@@ -1008,7 +1006,16 @@ math_env =
                       : name === 'multline'  ? 'gather'
                       : name === 'multline*' ? 'gather*'
                       : name;
-        return g.parseMath('\\begin{' + katexName + '}' + body + '\\end{' + katexName + '}', true);
+
+        var id = null;
+        if (name === 'equation' && !/\\tag\b/.test(body)) {
+            id = g.equationLabel(labels);
+            body += '\\tag{(' + g.counter('equation') + ')}';
+        }
+        var frag = g.parseMath('\\begin{' + katexName + '}' + body
+                               + '\\end{' + katexName + '}', true);
+        if (id) g.setNodeId(frag, id);
+        return frag;
     }
 
 math_env_name "math environment name" =

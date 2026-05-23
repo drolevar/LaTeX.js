@@ -493,6 +493,11 @@ export class LaTeX
     args.\ref =         <[ H g ]>
     \ref                : (label) -> [ @g.ref label.textContent ]
 
+    args.\eqref =       <[ H g ]>
+    \eqref              : (label) -> [ @g.create @g.inline,
+        [ @g.createText("("), @g.ref(label.textContent), @g.createText(")") ],
+        "eqref" ]
+
     # Citations resolve to appearance-ordered links into the reference
     # list built by \bibliography. \citet is the in-text form (no
     # brackets); \cite / \citep are bracketed.

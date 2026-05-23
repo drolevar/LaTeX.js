@@ -86,6 +86,9 @@ export class Generator
         # do this after creating the sectioning counters because \thepart etc. are already predefined
         @_macros = new Macros @, @_options.CustomMacros
 
+        # equation counter: created after Macros so \theequation is set on the live instance
+        @newCounter \equation
+
 
     # helpers
 
@@ -690,6 +693,26 @@ export class Generator
             @_refs.get label .push el
 
         el
+
+
+    # number the current equation, anchor it, and register any \label
+    # names pulled from the equation body. Returns the anchor id.
+    equationLabel: (labels) ->
+        @stepCounter \equation
+        id = "eq-" + @nextId!
+        @refCounter \equation, id      # currentlabel = { id, label: \theequation }
+        for n in labels when n.length
+            @setLabel n
+        id
+
+    # set the id on the first element node of a rendered fragment, so a
+    # \ref to the equation lands on its rendered block
+    setNodeId: (frag, id) !->
+        return if not frag
+        node = frag.firstChild
+        while node and node.nodeType != 1
+            node = node.nextSibling
+        node.id = id if node
 
 
     logUndefinedRefs: !->
