@@ -2,6 +2,7 @@ import
     './latex.ltx': { LaTeX }
     './symbols': { diacritics, symbols }
     './types': { makeLengthClass }
+    './bibtex-parse': bibtexParse
 
 Macros = LaTeX
 
@@ -727,6 +728,62 @@ export class Generator
             children.unshift @createText "["
             children.push @createText "]"
         @create @inline, children, "cite"
+
+
+    # \bibliography{names}: read each "<name>.bib" via the host readFile
+    # callback, parse, and render a "References" list of the CITED keys
+    # in appearance order. A cited key absent from the .bib is still
+    # anchored (so its \cite link lands) and recorded as a degradation.
+    # No readFile / no .bib content -> one bibliography degradation and
+    # no list (the \cite links remain, dangling but visible).
+    bibliography: (names) ->
+        read = @_options?.readFile
+        entries = {}
+        found = false
+        if typeof read == "function"
+            for raw in names.split ","
+                name = raw.trim!
+                continue if not name
+                name += ".bib" if not /\.bib$/i.test name
+                content = read name
+                continue if not content
+                found := true
+                try
+                    for e in bibtexParse.toJSON content
+                        key = (e.citationKey || "").toLowerCase!
+                        entries[key] = e if key
+                catch
+                    void
+
+        if not found
+            return @unsupportedNode \bibliography, "bibliography",
+                "no .bib content available via readFile"
+
+        cited = Array.from @_citations.entries!
+        cited.sort (a, b) -> a.1.n - b.1.n
+        items = for [key, c] in cited
+            e = entries[key.toLowerCase!]
+            li = @create "li", @formatBibEntry_ key, e
+            li.id = c.id
+            if not e
+                li.setAttribute "data-unresolved", ""
+                @reportDegradation \cite, key, "cited key not in .bib"
+            li
+        list = @create "ol", items, "latex-bibliography"
+        @createFragment (@create "h2", @createText "References"), list
+
+    # Plain "Authors. Title. Journal/Booktitle. Year." join (browsability
+    # over style fidelity). Missing entry -> the bare key so the line is
+    # not empty. Field lookup is case-insensitive via a lowercased map.
+    formatBibEntry_: (key, e) ->
+        return @createText key if not e
+        t = e.entryTags || {}
+        lower = {}
+        for own k of t
+            lower[k.toLowerCase!] = t[k]
+        parts = [lower.author, lower.title, (lower.journal || lower.booktitle), lower.year]
+        text = parts.filter((x) -> x?).join ". "
+        @createText (if text then text + "." else key)
 
 
     ### marginpar

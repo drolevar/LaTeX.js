@@ -502,6 +502,10 @@ export class LaTeX
     \citep              : (opt, keys) -> [ @g.cite keys.textContent, true ]
     args.\citet =       <[ H o? g ]>
     \citet              : (opt, keys) -> [ @g.cite keys.textContent, false ]
+    args.\bibliography =     <[ V g ]>
+    \bibliography            : (names) -> [ @g.bibliography names.textContent ]
+    args.\bibliographystyle = <[ V g ]>
+    \bibliographystyle       : (style) -> []
 
 
 
