@@ -18089,7 +18089,7 @@
 	var slice$$1 = [].slice, arrayFrom$$1 = Array.from || function(x){return slice$$1.call(x);};
 	export$ = (function(){
 	  LaTeX.displayName = 'LaTeX';
-	  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, prototype = LaTeX.prototype;
+	  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, prototype = LaTeX.prototype;
 	  providedPackages = ['calc', 'pspicture', 'picture', 'pict2e', 'keyval', 'comment'];
 	  LaTeX.prototype._title = null;
 	  LaTeX.prototype._author = null;
@@ -18542,6 +18542,27 @@
 	  LaTeX.prototype['endverse'] = function(){
 	    this.g.endlist();
 	  };
+	  z10$ = args;
+	  z10$['figure'] = z10$['table'] = ['V', 'o?'];
+	  LaTeX.prototype['figure'] = function(){
+	    this.g.beginFloat('figure');
+	    return [this.g.create(this.g.block, null, "figure")];
+	  };
+	  LaTeX.prototype['endfigure'] = function(){
+	    this.g.endFloat();
+	  };
+	  LaTeX.prototype['table'] = function(){
+	    this.g.beginFloat('table');
+	    return [this.g.create(this.g.block, null, "table")];
+	  };
+	  LaTeX.prototype['endtable'] = function(){
+	    this.g.endFloat();
+	  };
+	  z11$ = args;
+	  z11$['caption'] = ['V', 'o?', 'g'];
+	  LaTeX.prototype['caption'] = function(short, txt){
+	    return [this.g.caption(txt)];
+	  };
 	  args['itemize'] = ['V', 'X', 'items'];
 	  LaTeX.prototype['itemize'] = function(items){
 	    var ref$, label, this$ = this;
@@ -18632,6 +18653,14 @@
 	  LaTeX.prototype['eqref'] = function(label){
 	    return [this.g.create(this.g.inline, [this.g.createText("("), this.g.ref(label.textContent), this.g.createText(")")], "eqref")];
 	  };
+	  args['cref'] = ['H', 'g'];
+	  LaTeX.prototype['cref'] = function(label){
+	    return [this.g.cref(label.textContent, false)];
+	  };
+	  args['Cref'] = ['H', 'g'];
+	  LaTeX.prototype['Cref'] = function(label){
+	    return [this.g.cref(label.textContent, true)];
+	  };
 	  args['cite'] = ['H', 'o?', 'g'];
 	  LaTeX.prototype['cite'] = function(opt, keys){
 	    return [this.g.cite(keys.textContent, true)];
@@ -18652,8 +18681,8 @@
 	  LaTeX.prototype['bibliographystyle'] = function(style){
 	    return [];
 	  };
-	  z10$ = args;
-	  z10$['llap'] = z10$['rlap'] = z10$['clap'] = z10$['smash'] = z10$['hphantom'] = z10$['vphantom'] = z10$['phantom'] = ['H', 'hg'];
+	  z12$ = args;
+	  z12$['llap'] = z12$['rlap'] = z12$['clap'] = z12$['smash'] = z12$['hphantom'] = z12$['vphantom'] = z12$['phantom'] = ['H', 'hg'];
 	  LaTeX.prototype['llap'] = function(txt){
 	    return [this.g.create(this.g.inline, txt, "hbox llap")];
 	  };
@@ -18801,11 +18830,11 @@
 	    box.setAttribute("style", style);
 	    return [box];
 	  };
-	  z11$ = args;
-	  z11$['thicklines'] = ['HV'];
-	  z11$['thinlines'] = ['HV'];
-	  z11$['linethickness'] = ['HV', 'l'];
-	  z11$['arrowlength'] = ['HV', 'l'];
+	  z13$ = args;
+	  z13$['thicklines'] = ['HV'];
+	  z13$['thinlines'] = ['HV'];
+	  z13$['linethickness'] = ['HV', 'l'];
+	  z13$['arrowlength'] = ['HV', 'l'];
 	  LaTeX.prototype['thinlines'] = function(){
 	    this.g.setLength('@wholewidth', new this.g.Length(0.4, "pt"));
 	  };
@@ -19155,8 +19184,8 @@
 	    this.g.stepCounter(c);
 	    return [this.g.refCounter(c)];
 	  };
-	  z12$ = args;
-	  z12$['alph'] = z12$['Alph'] = z12$['arabic'] = z12$['roman'] = z12$['Roman'] = z12$['fnsymbol'] = ['H', 's', 'i?'];
+	  z14$ = args;
+	  z14$['alph'] = z14$['Alph'] = z14$['arabic'] = z14$['roman'] = z14$['Roman'] = z14$['fnsymbol'] = ['H', 's', 'i?'];
 	  LaTeX.prototype['alph'] = function(star, c){
 	    if (c) {
 	      return [this.g['alph'](this.g.counter(c))];
@@ -19264,28 +19293,28 @@
 	  LaTeX.prototype['makeatletter'] = function(){};
 	  args['makeatother'] = ['HV'];
 	  LaTeX.prototype['makeatother'] = function(){};
-	  z13$ = args;
-	  z13$['pagestyle'] = ['HV', 'i'];
+	  z15$ = args;
+	  z15$['pagestyle'] = ['HV', 'i'];
 	  LaTeX.prototype['pagestyle'] = function(s){};
-	  z14$ = args;
-	  z14$['linebreak'] = ['HV', 'n?'];
-	  z14$['nolinebreak'] = ['HV', 'n?'];
-	  z14$['fussy'] = ['HV'];
-	  z14$['sloppy'] = ['HV'];
+	  z16$ = args;
+	  z16$['linebreak'] = ['HV', 'n?'];
+	  z16$['nolinebreak'] = ['HV', 'n?'];
+	  z16$['fussy'] = ['HV'];
+	  z16$['sloppy'] = ['HV'];
 	  LaTeX.prototype['linebreak'] = function(o){};
 	  LaTeX.prototype['nolinebreak'] = function(o){};
 	  LaTeX.prototype['fussy'] = function(){};
 	  LaTeX.prototype['sloppy'] = function(){};
-	  z15$ = args;
-	  z15$['pagebreak'] = ['HV', 'n?'];
-	  z15$['nopagebreak'] = ['HV', 'n?'];
-	  z15$['samepage'] = ['HV'];
-	  z15$['enlargethispage'] = ['HV', 's', 'l'];
-	  z15$['newpage'] = ['HV'];
-	  z15$['clearpage'] = ['HV'];
-	  z15$['cleardoublepage'] = ['HV'];
-	  z15$['vfill'] = ['HV'];
-	  z15$['thispagestyle'] = ['HV', 'i'];
+	  z17$ = args;
+	  z17$['pagebreak'] = ['HV', 'n?'];
+	  z17$['nopagebreak'] = ['HV', 'n?'];
+	  z17$['samepage'] = ['HV'];
+	  z17$['enlargethispage'] = ['HV', 's', 'l'];
+	  z17$['newpage'] = ['HV'];
+	  z17$['clearpage'] = ['HV'];
+	  z17$['cleardoublepage'] = ['HV'];
+	  z17$['vfill'] = ['HV'];
+	  z17$['thispagestyle'] = ['HV', 'i'];
 	  LaTeX.prototype['pagebreak'] = function(o){};
 	  LaTeX.prototype['nopagebreak'] = function(o){};
 	  LaTeX.prototype['samepage'] = function(){};
@@ -19684,6 +19713,7 @@
 	      align: null,
 	      currentlabel: {
 	        id: "",
+	        type: "",
 	        label: document.createTextNode("")
 	      },
 	      lengths: new Map()
@@ -19693,6 +19723,8 @@
 	    this._refs = new Map();
 	    this._citations = new Map();
 	    this._degradations = [];
+	    this._crefNames = {};
+	    this._captionType = null;
 	    this._marginpars = [];
 	    this._counters = new Map();
 	    this._resets = new Map();
@@ -20128,6 +20160,7 @@
 	    }
 	    this._stack.top.currentlabel = {
 	      id: id,
+	      type: c,
 	      label: this.createFragment(arrayFrom$(this.hasMacro('p@' + c)
 	        ? this.macro('p@' + c)
 	        : []).concat(arrayFrom$(this.macro('the' + c))))
@@ -20273,6 +20306,46 @@
 	    if (node) {
 	      node.id = id;
 	    }
+	  };
+	  Generator.prototype.crefName = function(type){
+	    return this._crefNames[type] || type;
+	  };
+	  Generator.prototype.cref = function(label, cap){
+	    var entry, name, link, inner;
+	    entry = this._labels.get(label);
+	    if (!entry || !entry.type) {
+	      return this.ref(label);
+	    }
+	    name = this.crefName(entry.type);
+	    if (cap) {
+	      name = name.charAt(0).toUpperCase() + name.slice(1);
+	    }
+	    link = this.create(this.link("#" + entry.id), entry.label.cloneNode(true));
+	    inner = entry.type === 'equation'
+	      ? [this.createText(name + " ("), link, this.createText(")")]
+	      : [this.createText(name + " "), link];
+	    return this.create(this.inline, inner, "cref");
+	  };
+	  Generator.prototype.beginFloat = function(type){
+	    this._captionType = type;
+	  };
+	  Generator.prototype.endFloat = function(){
+	    this._captionType = null;
+	  };
+	  Generator.prototype.caption = function(txt){
+	    var type, id, name, head, el;
+	    type = this._captionType;
+	    if (!type) {
+	      return this.create(this.block, txt, "caption");
+	    }
+	    this.stepCounter(type);
+	    id = type + "-" + this.nextId();
+	    this.refCounter(type, id);
+	    name = type.charAt(0).toUpperCase() + type.slice(1);
+	    head = this.createFragment([this.createText(name + " ")].concat(arrayFrom$(this.macro('the' + type)), [this.createText(": ")]));
+	    el = this.create(this.block, [head, txt], "caption");
+	    el.id = id;
+	    return el;
 	  };
 	  Generator.prototype.logUndefinedRefs = function(){
 	    var keys, ref;
