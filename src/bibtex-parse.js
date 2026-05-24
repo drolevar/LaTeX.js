@@ -173,10 +173,14 @@
                 return this.value_quotes();
             } else {
                 var k = this.key();
-                if (k.match("^[0-9]+$"))
-                    return k;
-                else if (this.months.indexOf(k.toLowerCase()) >= 0)
-                    return k.toLowerCase();
+                // bare unquoted values (year = 2023, month = jan): key()
+                // can include a trailing newline since \n is not a stop
+                // char, so trim before testing or "2023\n" fails ^[0-9]+$.
+                var kt = (k || "").trim();
+                if (kt.match("^[0-9]+$"))
+                    return kt;
+                else if (this.months.indexOf(kt.toLowerCase()) >= 0)
+                    return kt.toLowerCase();
                 else
                     throw "Value expected: single_value" + this.input.substring(start) + ' for key: ' + k;
 
@@ -291,18 +295,28 @@
 
         this.bibtex = function() {
             while (this.matchAt()) {
-                var d = this.directive();
-                this.match("{");
-                if (d.toUpperCase() == "@STRING") {
-                    this.string();
-                } else if (d.toUpperCase() == "@PREAMBLE") {
-                    this.preamble();
-                } else if (d.toUpperCase() == "@COMMENT") {
-                    this.comment();
-                } else {
-                    this.entry(d);
+                var entryStart = this.pos;   // at the '@'
+                try {
+                    var d = this.directive();
+                    this.match("{");
+                    if (d.toUpperCase() == "@STRING") {
+                        this.string();
+                    } else if (d.toUpperCase() == "@PREAMBLE") {
+                        this.preamble();
+                    } else if (d.toUpperCase() == "@COMMENT") {
+                        this.comment();
+                    } else {
+                        this.entry(d);
+                    }
+                    this.match("}");
+                } catch (e) {
+                    // One malformed entry must not lose the whole
+                    // bibliography: step past this entry's @ and let
+                    // matchAt resync on the next entry. (entries.push is
+                    // the last step in each parse fn, so a throw mid-entry
+                    // leaves no partial entry behind.)
+                    this.pos = entryStart + 1;
                 }
-                this.match("}");
             };
 
             this.alernativeCitationKey();

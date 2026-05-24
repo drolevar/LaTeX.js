@@ -36,5 +36,17 @@ const render = (b) => { const g = new HtmlGenerator({hyphenate:false,tolerant:tr
   const h = render('\\caption{orphan}');
   ok(/orphan/.test(h) && !/Figure/.test(h), 'orphan caption renders text without a number');
 }
+// (4) bracket math in a caption argument must not leak a group. A bare ]
+// in math used to fail to parse in a balanced (argument) context, backtrack,
+// and strand the float's group, leaking its alignment onto the body.
+{
+  const g = new HtmlGenerator({ hyphenate: false, tolerant: true });
+  const h = parse(wrap(
+    '\\begin{figure}\\centering\\caption{$f(x)=[a,b]$, \\(y=[c]^2\\)}\\label{fig:m}\\end{figure}'),
+    { generator: g }).htmlDocument().body.innerHTML;
+  ok(g._stack.length === 1, 'bracket-math caption leaves no leaked group');
+  ok(!/<div class="body[^"]*(centering|raggedright)/.test(h),
+     'body container not polluted by a leaked alignment');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

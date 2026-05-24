@@ -38,5 +38,21 @@ const ok = (c, m) => c ? passed++ : (failed++, console.log('FAIL ' + m));
         { generator: gen }).htmlDocument();
   ok(gen.counter('equation') === 0, 'equation* does not step the counter');
 }
+// (4) hyphenated equation label resolves: the label is stored raw (ASCII
+// '-') from the math body, while \ref's key arrives via rendered textContent
+// where '-' became U+2010 - canonicalLabel reconciles them. Also the auto
+// \tag must render a single (N), not ((N)) (KaTeX adds its own parens).
+{
+  const gen = new HtmlGenerator({ hyphenate: false, tolerant: true });
+  const html = parse(wrap(
+    '\\begin{equation}\\label{eq:a-b}E=mc^2\\end{equation}\nsee \\ref{eq:a-b}.'),
+    { generator: gen }).htmlDocument().body.innerHTML;
+  ok(/href="#eq-\d+"/.test(html), 'hyphenated label: ref resolves to the anchor');
+  ok(!/>\?\?</.test(html), 'hyphenated label: no unresolved ??');
+  const txt = parse(wrap('\\begin{equation}z=1\\end{equation}'),
+    { generator: new HtmlGenerator({ hyphenate: false, tolerant: true }) })
+    .htmlDocument().body.textContent;
+  ok(!txt.includes('(('), 'auto tag renders a single (N), not ((N))');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

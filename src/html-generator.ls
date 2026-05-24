@@ -296,8 +296,17 @@ export class HtmlGenerator extends Generator
     domFragment: ->
         el = document.createDocumentFragment!
 
+        # The body container must not inherit an alignment that leaked into
+        # the root group from the preamble (e.g. a \raggedright inside a
+        # \newcolumntype replacement). Inner blocks carry their own
+        # alignment; the document group's own align has popped by now.
+        bodyAlign = @_stack.top.align
+        @_stack.top.align = null
+
         # text body
         el.appendChild @create @block, @_dom, "body"
+
+        @_stack.top.align = bodyAlign
 
         if @_marginpars.length
             # marginpar on the right - TODO: is there any configuration possible to select which margin?

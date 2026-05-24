@@ -1041,7 +1041,9 @@ math_env =
         var id = null;
         if (name === 'equation' && !/\\tag\b/.test(body)) {
             id = g.equationLabel(labels);
-            body += '\\tag{(' + g.counter('equation') + ')}';
+            // KaTeX's \tag wraps the number in parens itself; passing
+            // (N) here would render as ((N)).
+            body += '\\tag{' + g.counter('equation') + '}';
         }
         var frag = g.parseMath('\\begin{' + katexName + '}' + body
                                + '\\end{' + katexName + '}', true);
@@ -1060,7 +1062,13 @@ math_env_name "math environment name" =
 
 
 math_primitive =
-    primitive
+    // brackets and parens are always valid math content. primitive's
+    // right_br is balance-guarded for text-mode optarg disambiguation;
+    // that guard must not apply inside math, or a bare ] in an
+    // argument-context formula (e.g. a \caption{... \(a=[b]\) ...})
+    // fails to parse, backtracks, and leaks the argument's group.
+    [\[\]()]
+    / primitive
     / alignment_tab
     / superscript
     / subscript

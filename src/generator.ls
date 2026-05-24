@@ -755,8 +755,26 @@ export class Generator
 
     ### label, ref
 
+    # Undo the renderer's typographic transforms (hyphen variants,
+    # ligatures) so a label stored raw from an equation math body matches
+    # a ref/cref whose key arrives via already-rendered textContent.
+    canonicalLabel: (s) ->
+        return s if typeof s != \string
+        out = ""
+        for ch in s.split ""
+            out += switch ch.charCodeAt 0
+                | 0x2010, 0x2011 => "-"
+                | 0xFB00 => "ff"
+                | 0xFB01 => "fi"
+                | 0xFB02 => "fl"
+                | 0xFB03 => "ffi"
+                | 0xFB04 => "ffl"
+                | otherwise => ch
+        out
+
     # labels are possible for: parts, chapters, all sections, \items, footnotes, minipage-footnotes, tables, figures
     setLabel: (label) !->
+        label = @canonicalLabel label
         # A duplicate \label is a warning in real LaTeX, not fatal.
         # Tolerant mode keeps the first definition and carries on
         # (the body-recovery skip can also re-feed a label).
@@ -783,6 +801,7 @@ export class Generator
 
     # keep a reference to each ref element if no label is known yet, then as we go along, fill it with labels
     ref: (label) ->
+        label = @canonicalLabel label
         # href is the element id, content is \the<counter>
         if @_labels.get label
             return @create @link("#" + that.id), that.label.cloneNode true
@@ -828,6 +847,7 @@ export class Generator
     # number (matching \eqref). Unknown/undefined label -> fall back to a
     # bare \ref (number link / ??, no name) so it never throws.
     cref: (label, cap) ->
+        label = @canonicalLabel label
         entry = @_labels.get label
         return @ref label if not entry or not entry.type
         name = @crefName entry.type

@@ -55,5 +55,25 @@ const ok = (c, m) => c ? passed++ : (failed++, console.log('FAIL ' + m));
   ok(gen.degradations().some(d => d.kind === 'bibliography'),
      'absent .bib recorded as bibliography degradation');
 }
+// (4) a bare unquoted numeric value (year = 2023) before a newline-} must
+// parse - key() keeps the trailing \n since it is not a stop char, so trim
+// before the ^[0-9]+$ test. And one malformed entry must not lose the rest
+// of the file (per-entry resync to the next @).
+{
+  const bib = `@misc{good1, title={Alpha}, year = 2023
+}
+@article{broken, title = }
+@article{good2, author={B}, title={Beta}, year={2021}}`;
+  const gen = new HtmlGenerator({
+    hyphenate: false, tolerant: true,
+    readFile: (n) => n === 'refs.bib' ? bib : null,
+  });
+  const html = parse(wrap('See \\cite{good1} and \\cite{good2}.\n\\bibliography{refs}'),
+                     { generator: gen }).htmlDocument().body.innerHTML;
+  ok(/Alpha/.test(html), 'bare-number (year=2023) entry parsed: title shown');
+  ok(/Beta/.test(html), 'entry after a malformed one still parsed (resync)');
+  ok(!/id="cite-good1"[^>]*data-unresolved/.test(html), 'good1 resolved');
+  ok(!/id="cite-good2"[^>]*data-unresolved/.test(html), 'good2 resolved');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
