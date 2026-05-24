@@ -1229,6 +1229,15 @@ export class LaTeX
     \refstepcounter     : (c) -> @g.stepCounter c; return [ @g.refCounter c ]
 
 
+    # theorem environments
+
+    args
+     ..\newtheorem =        <[ HV s i o? g o? ]>
+     ..\theoremstyle =      <[ HV g ]>
+
+    \newtheorem             : (star, env, shared, title, parent) !-> @g.defineTheorem env, (shared), title, (parent), not star
+    \theoremstyle           : (style) -> []
+
     # formatting counters
 
     # `s i?`: accept the enumitem star form (\arabic*, \roman*, ...)

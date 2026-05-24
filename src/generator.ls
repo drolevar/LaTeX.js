@@ -72,6 +72,7 @@ export class Generator
         @_citations = new Map()
         @_degradations = []
         @_crefNames = {}
+        @_userArgs = {}
         @_captionType = null
 
         @_marginpars = []
@@ -191,11 +192,42 @@ export class Generator
         and name !== "constructor"
         and (@_macros.hasOwnProperty name or Macros.prototype.hasOwnProperty name)
 
+    argsFor: (m) -> if @_userArgs? and @_userArgs[m]? then @_userArgs[m] else Macros.args[m]
 
-    isHmode:    (marco) -> Macros.args[marco]?.0 == \H  or not Macros.args[marco]
-    isVmode:    (marco) -> Macros.args[marco]?.0 == \V
-    isHVmode:   (marco) -> Macros.args[marco]?.0 == \HV
-    isPreamble: (marco) -> Macros.args[marco]?.0 == \P
+    defineMacro: (name, argSpec, impl) !->
+        @_userArgs[name] = argSpec
+        @_macros[name] = impl
+
+    defineTheorem: (env, shared, title, parent, numbered) !->
+        return if not env
+        sharedName = shared?.textContent?.trim!
+        parentName = parent?.textContent?.trim!
+        counter = sharedName or env
+        if numbered and not sharedName and not @hasCounter counter
+            if parentName then @newCounter counter, parentName else @newCounter counter
+        name = (title?.textContent or env)
+        @_crefNames[counter] = name.toLowerCase! if numbered
+        g = this
+        @defineMacro env, <[ V o? ]>, (note) ->
+            if numbered
+                id = "thm-" + g.nextId!
+                g.stepCounter counter
+                g.refCounter counter, id
+            parts = [ g.createText(name) ]
+            if numbered
+                parts.push g.createText(" ")
+                parts.push ...g.macro(\the + counter)
+            parts.push g.createText(if note then " (#{note.textContent})." else ".")
+            headEl = g.create g.inline, g.createFragment(parts), "theorem-head"
+            el = g.create g.block, headEl, "theorem"
+            el.id = id if numbered
+            [el]
+        @defineMacro ("end" + env), <[ V ]>, -> []
+
+    isHmode:    (marco) -> @argsFor(marco)?.0 == \H  or not @argsFor(marco)
+    isVmode:    (marco) -> @argsFor(marco)?.0 == \V
+    isHVmode:   (marco) -> @argsFor(marco)?.0 == \HV
+    isPreamble: (marco) -> @argsFor(marco)?.0 == \P
 
     macro: (name, args) ->
         if symbols.has name
@@ -231,10 +263,11 @@ export class Generator
     # macro arguments
 
     beginArgs: (macro) !->
-        @_curArgs.push if Macros.args[macro]
+        decl = @argsFor macro
+        @_curArgs.push if decl
             then {
                 name: macro
-                args: that.slice(1)
+                args: decl.slice(1)
                 parsed: []
                 failed: false
             } else {
