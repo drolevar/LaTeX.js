@@ -16970,6 +16970,35 @@
 	}());
 
 	var export$$7;
+	var toCssDimen;
+	toCssDimen = function(v){
+	  var s, bs, i$, ref$, len$, kw, idx, num, n, m;
+	  if (v == null) {
+	    return null;
+	  }
+	  s = (v + "").trim();
+	  bs = String.fromCharCode(92);
+	  for (i$ = 0, len$ = (ref$ = ['textwidth', 'columnwidth', 'linewidth', 'hsize']).length; i$ < len$; ++i$) {
+	    kw = ref$[i$];
+	    idx = s.indexOf(bs + kw);
+	    if (idx >= 0) {
+	      num = s.slice(0, idx).trim();
+	      n = num === ""
+	        ? 1
+	        : parseFloat(num);
+	      return (isNaN(n)
+	        ? 100
+	        : n * 100) + "%";
+	    }
+	  }
+	  if (s.match(/^[\d.]+\s*(cm|mm|in|pt|pc|px|em|ex|rem|%)$/)) {
+	    return s;
+	  }
+	  if (m = s.match(/^([\d.]+)\s*bp$/)) {
+	    return m[1] + "pt";
+	  }
+	  return null;
+	};
 	export$$7 = (function(){
 	  Graphicx.displayName = 'Graphicx';
 	  var args; Graphicx.prototype;
@@ -16990,8 +17019,8 @@
 	  args['includegraphics'] = ['H', 's', 'kv?', 'kv?', 'k'];
 	  Graphicx.prototype['includegraphics'] = function(s, kvl, kvl2, file){
 	    var w, h;
-	    w = kvl ? kvl.get("width") : null;
-	    h = kvl ? kvl.get("height") : null;
+	    w = toCssDimen(kvl ? kvl.get("width") : null);
+	    h = toCssDimen(kvl ? kvl.get("height") : null);
 	    return [this.g.createImage(w, h, file)];
 	  };
 	  return Graphicx;

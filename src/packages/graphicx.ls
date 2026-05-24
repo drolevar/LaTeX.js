@@ -1,5 +1,27 @@
 'use strict'
 
+# Convert a LaTeX \includegraphics width/height to a valid CSS dimension.
+# \textwidth/\columnwidth/\linewidth (optionally scaled, e.g. 0.48\textwidth)
+# become a percent of the container; absolute CSS units pass through; bp
+# (big point) maps to pt; anything else -> null (natural size). Without
+# this the raw "0.48\textwidth" lands in CSS, is invalid, and the browser
+# falls back to the image's full natural size (overflowing the column).
+to-css-dimen = (v) ->
+    return null if not v?
+    s = (v + "").trim!
+    bs = String.fromCharCode 92
+    for kw in <[ textwidth columnwidth linewidth hsize ]>
+        idx = s.indexOf(bs + kw)
+        if idx >= 0
+            num = s.slice(0, idx).trim!
+            n = if num == "" then 1 else parseFloat(num)
+            return "#{if isNaN(n) then 100 else n * 100}%"
+    if s.match(/^[\d.]+\s*(cm|mm|in|pt|pc|px|em|ex|rem|%)$/)
+        return s
+    if m = s.match(/^([\d.]+)\s*bp$/)
+        return "#{m.1}pt"
+    null
+
 export class Graphicx
 
     args = @args = {}
@@ -91,6 +113,6 @@ export class Graphicx
         # kvl is null when neither optional [key=value] arg group
         # was supplied (e.g. plain \includegraphics{file}); guard
         # so the bare-arg form doesn't crash.
-        w = if kvl then kvl.get("width") else null
-        h = if kvl then kvl.get("height") else null
+        w = to-css-dimen(if kvl then kvl.get("width") else null)
+        h = to-css-dimen(if kvl then kvl.get("height") else null)
         [ @g.createImage w, h, file ]

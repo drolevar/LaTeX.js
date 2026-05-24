@@ -48,5 +48,17 @@ const render = (b) => { const g = new HtmlGenerator({hyphenate:false,tolerant:tr
   ok(!/<div class="body[^"]*(centering|raggedright)/.test(h),
      'body container not polluted by a leaked alignment');
 }
+// (5) \includegraphics width is converted to a valid CSS dimension
+// (\textwidth-relative -> percent) so the image scales to the column; the
+// raw "width: 0.48\textwidth" was invalid CSS, dropped by the browser ->
+// the image rendered at full natural size and overflowed.
+{
+  const g = new HtmlGenerator({ hyphenate: false, tolerant: true });
+  const html = parse(
+    '\\documentclass{article}\n\\usepackage{graphicx}\n\\begin{document}\n'
+    + '\\includegraphics[width=0.48\\textwidth]{x.png}\n\\end{document}',
+    { generator: g }).htmlDocument().body.innerHTML;
+  ok(/<img[^>]*width:\s*48%/.test(html), 'includegraphics width=0.48\\textwidth -> 48%');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
