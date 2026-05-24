@@ -73,6 +73,7 @@ export class Generator
         @_degradations = []
         @_crefNames = {}
         @_userArgs = {}
+        @_katexMacros = {}
         @_captionType = null
 
         @_marginpars = []
@@ -197,6 +198,39 @@ export class Generator
     defineMacro: (name, argSpec, impl) !->
         @_userArgs[name] = argSpec
         @_macros[name] = impl
+
+    defineUserCommand: (name, nargs, def, body, mode) !->
+        return if not name
+        cs = ("" + name).replace /^\\/, ""
+        return if not cs
+        exists = @hasMacro(cs) or @_katexMacros["\\" + cs]?
+        return if mode == \provide and exists
+        n = if nargs? then (parseInt (("" + nargs).replace /[^0-9]/g, ""), 10) or 0 else 0
+        body ?= ""
+        @_katexMacros["\\" + cs] = body
+        g = this
+        spec = [\H]
+        if def?
+            spec.push \rg?
+            for i from 2 to n
+                spec.push \rg
+        else
+            for i from 1 to n
+                spec.push \rg
+        @defineMacro cs, spec, (...rawArgs) ->
+            g._expandDepth = (g._expandDepth or 0) + 1
+            if g._expandDepth > 80
+                g._expandDepth -= 1
+                return [ g.unsupportedNode \newcommand, cs, "macro expansion too deep (recursion?)" ]
+            expanded = body
+            for i from 1 to n
+                a = rawArgs[i - 1]
+                a = def if i == 1 and def? and not a?
+                a ?= ""
+                expanded := expanded.replace (new RegExp "#" + i, "g"), a
+            out = g.reparse expanded
+            g._expandDepth -= 1
+            [ out ]
 
     defineTheorem: (env, shared, title, parent, numbered) !->
         return if not env

@@ -1232,6 +1232,16 @@ export class LaTeX
     # theorem environments
 
     args
+     ..\newcommand =        \
+     ..\renewcommand =      <[ HV m n? rg? rg ]>
+    args
+     ..\providecommand =    <[ HV m n? rg? rg ]>
+
+    \newcommand             : (name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \new
+    \renewcommand           : (name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \renew
+    \providecommand         : (name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \provide
+
+    args
      ..\newtheorem =        <[ HV s i o? g o? ]>
      ..\theoremstyle =      <[ HV g ]>
 

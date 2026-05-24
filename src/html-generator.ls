@@ -478,6 +478,7 @@ export class HtmlGenerator extends Generator
         katex.render math, f,
             displayMode: !!display
             throwOnError: false
+            macros: @_katexMacros
         f
 
 

@@ -325,6 +325,18 @@ keyval_braced =
     begin_group v:$((!end_group .)*) end_group   { return v.trim(); }
 
 
+// Raw verbatim brace-group: captures nested braces as source text.
+// Used for \newcommand body and arg-count so #n substitution + reparse works.
+balanced_braces = (!begin_group !end_group . / begin_group balanced_braces end_group)*
+
+raw_group    = _ begin_group c:$balanced_braces end_group   { return c; }
+
+// Raw optional group [..] allowing nested {}; returns the source between [ and ].
+raw_optgroup = _ begin_optgroup c:$((!end_optgroup !begin_group .
+                                     / begin_group balanced_braces end_group)*)
+               end_optgroup   { return c; }
+
+
 macro_args =
     (
         &{ return g.nextArg("X") }                                                                              { g.preExecMacro(); }
@@ -349,6 +361,8 @@ macro_args =
       / &{ return g.nextArg("lg?") }  l: length_group?                                                          { g.addParsedArg(l); }
       / &{ return g.nextArg("l?") }   l: length_optgroup?                                                       { g.addParsedArg(l); }
       / &{ return g.nextArg("m") }    m:(macro_group    / macro_bare / &{ g.argError("macro group argument expected") })     { g.addParsedArg(m); }
+      / &{ return g.nextArg("rg") }   r:(raw_group      / &{ g.argError("raw group expected") })                 { g.addParsedArg(r); }
+      / &{ return g.nextArg("rg?") }  r: raw_optgroup?                                                            { g.addParsedArg(r); }
       / &{ return g.nextArg("gl") }   l:(group_list     / &{ g.argError("group list argument expected") })       { g.addParsedArg(l); }
       / &{ return g.nextArg("u") }    u:(url_group      / &{ g.argError("url group argument expected") })       { g.addParsedArg(u); }
 
