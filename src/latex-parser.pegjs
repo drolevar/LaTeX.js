@@ -890,8 +890,11 @@ h_environment =
 
         var pf = g.createFragment(p);
         if (pf && node && node.length > 0 && node[node.length - 1].nodeType === 1) {
-            node[node.length - 1].appendChild(sb);
-            node[node.length - 1].appendChild(pf);
+            // sb (a space text node) is undefined when there's no space
+            // after \begin{...}; guard so appendChild never sees undefined
+            // (exposed when a user-redefined macro is used as \begin{X}).
+            if (sb) node[node.length - 1].appendChild(sb);
+            if (pf) node[node.length - 1].appendChild(pf);
             return g.createFragment(node, end, se);
         }
 

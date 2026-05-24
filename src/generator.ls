@@ -208,6 +208,13 @@ export class Generator
         n = if nargs? then (parseInt (("" + nargs).replace /[^0-9]/g, ""), 10) or 0 else 0
         body ?= ""
         @_katexMacros["\\" + cs] = body
+        # Generator-side (text-mode) expansion is for genuinely new commands
+        # or our own earlier user macros only. Redefining a BUILT-IN (an
+        # environment like enumerate, a programmatic macro like \theenumi)
+        # through the reparse path corrupts its mode and crashes the env
+        # machinery; leave built-ins to their native impl - math usage is
+        # still honored via the KaTeX macro registered above.
+        return if @hasMacro(cs) and not @_userArgs?[cs]?
         g = this
         spec = [\H]
         if def?
@@ -230,6 +237,13 @@ export class Generator
                 expanded := expanded.replace (new RegExp "#" + i, "g"), a
             out = g.reparse expanded
             g._expandDepth -= 1
+            # unwrap a lone wrapping <p> so an inline text macro doesn't
+            # inject paragraph breaks mid-sentence
+            if out and (out.nodeName ? "").toLowerCase! == \p
+                inline = g.createFragment!
+                while out.firstChild
+                    inline.appendChild out.firstChild
+                return [ inline ]
             [ out ]
 
     defineTheorem: (env, shared, title, parent, numbered) !->
