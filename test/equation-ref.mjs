@@ -54,5 +54,21 @@ const ok = (c, m) => c ? passed++ : (failed++, console.log('FAIL ' + m));
     .htmlDocument().body.textContent;
   ok(!txt.includes('(('), 'auto tag renders a single (N), not ((N))');
 }
+// (5) multi-line align: each non-\nonumber row is numbered with the global
+// counter and its \label resolves; a nested \begin{cases}..\\..\end{cases}
+// must NOT be split as a row.
+{
+  const gen = new HtmlGenerator({ hyphenate: false, tolerant: true });
+  const html = parse(wrap(
+    '\\begin{equation}a=1\\end{equation}\n'
+    + '\\begin{align}\nx &= 2 \\label{eq:r2}\\\\\n'
+    + 'y &= \\begin{cases}p\\\\q\\end{cases} \\label{eq:r3}\n\\end{align}\n'
+    + 'see \\ref{eq:r2} and \\ref{eq:r3}.'),
+    { generator: gen }).htmlDocument().body.innerHTML;
+  ok(gen.counter('equation') === 3, 'global counter spans equation + align rows (== 3)');
+  ok(/href="#eq-\d+"/.test(html), 'align-row labels resolve to anchors');
+  ok((html.match(/>\?\?</g) || []).length === 0, 'no unresolved align refs');
+  ok(!/katex-error/.test(html), 'nested cases \\\\ not split as a row');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

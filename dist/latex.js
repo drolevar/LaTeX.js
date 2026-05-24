@@ -1255,14 +1255,12 @@
 	        peg$c334 = function(m) { return g.parseMath(m, true); },
 	        peg$c335 = function(name, body, end_name) { return name === end_name; },
 	        peg$c336 = function(name, body, end_name) {
-	                // Pull \label out of the math body before KaTeX sees it (KaTeX
-	                // renders \label as a red error token). A numbered equation
-	                // registers them against its number; other envs just drop them.
-	                var labels = [];
-	                body = body.replace(/\\label\s*\x7b([^\x7d]*)\x7d/g, function(_m, n) { labels.push(n.trim()); return ""; });
-
+	                // KaTeX renders \label as a red error token, so labels are pulled
+	                // out of the math body here. equation registers them at a single
+	                // number; align/eqnarray/gather number row by row; the rest
+	                // (starred, displaymath, multline) just drop them.
 	                if (name === 'displaymath')
-	                    return g.parseMath(body, true);
+	                    return g.parseMath(body.replace(/\\label\s*\x7b[^\x7d]*\x7d/g, ""), true);
 
 	                var katexName = name === 'eqnarray'  ? 'align'
 	                              : name === 'eqnarray*' ? 'align*'
@@ -1270,12 +1268,21 @@
 	                              : name === 'multline*' ? 'gather*'
 	                              : name;
 
+	                var perRow = { align: 1, eqnarray: 1, gather: 1 };
 	                var id = null;
 	                if (name === 'equation' && !/\\tag\b/.test(body)) {
+	                    var labels = [];
+	                    body = body.replace(/\\label\s*\x7b([^\x7d]*)\x7d/g, function(_m, n) { labels.push(n.trim()); return ""; });
 	                    id = g.equationLabel(labels);
 	                    // KaTeX's \tag wraps the number in parens itself; passing
 	                    // (N) here would render as ((N)).
 	                    body += '\\tag{' + g.counter('equation') + '}';
+	                } else if (perRow[name] && !/\\tag\b/.test(body)) {
+	                    var res = g.numberMathRows(body);
+	                    body = res.body;
+	                    id = res.id;
+	                } else {
+	                    body = body.replace(/\\label\s*\x7b[^\x7d]*\x7d/g, "");
 	                }
 	                var frag = g.parseMath('\\begin{' + katexName + '}' + body
 	                                       + '\\end{' + katexName + '}', true);
@@ -21082,6 +21089,92 @@
 	      }
 	    }
 	    return id;
+	  };
+	  Generator.prototype.splitMathRows = function(body){
+	    var rows, cur, depth, i, len, k, word, ref$, seg, ch;
+	    rows = [];
+	    cur = "";
+	    depth = 0;
+	    i = 0;
+	    len = body.length;
+	    while (i < len) {
+	      if (body.substr(i, 2) === "\\\\") {
+	        if (depth === 0) {
+	          rows.push(cur);
+	          cur = "";
+	          i += 2;
+	          if (body.charAt(i) === "[") {
+	            k = body.indexOf("]", i);
+	            i = k >= 0 ? k + 1 : i;
+	          }
+	        } else {
+	          cur += "\\\\";
+	          i += 2;
+	        }
+	      } else if (body.substr(i, 2) === "\\{" || body.substr(i, 2) === "\\}") {
+	        cur += body.substr(i, 2);
+	        i += 2;
+	      } else if (body.charAt(i) === "\\") {
+	        word = ((ref$ = /^\\([a-zA-Z]+)/.exec(body.slice(i))) != null ? ref$[1] : void 8) || "";
+	        if (word === "begin") {
+	          depth++;
+	        }
+	        if (word === "end" && depth > 0) {
+	          depth--;
+	        }
+	        seg = word
+	          ? "\\" + word
+	          : body.substr(i, 2);
+	        cur += seg;
+	        i += seg.length;
+	      } else {
+	        ch = body.charAt(i);
+	        if (ch === "{") {
+	          depth++;
+	        }
+	        if (ch === "}" && depth > 0) {
+	          depth--;
+	        }
+	        cur += ch;
+	        i++;
+	      }
+	    }
+	    rows.push(cur);
+	    return rows;
+	  };
+	  Generator.prototype.numberMathRows = function(body){
+	    var blockId, anchored, out, i$, ref$, len$, row, num, labels, r, j$, len1$, l;
+	    blockId = "eq-" + this.nextId();
+	    anchored = false;
+	    out = [];
+	    for (i$ = 0, len$ = (ref$ = this.splitMathRows(body)).length; i$ < len$; ++i$) {
+	      row = ref$[i$];
+	      if (/\\(?:nonumber|notag)\b/.test(row)) {
+	        out.push(row.replace(/\\label\s*\{[^}]*\}/g, ""));
+	      } else {
+	        this.stepCounter('equation');
+	        this.refCounter('equation', blockId);
+	        num = this.counter('equation');
+	        labels = [];
+	        r = row.replace(/\\label\s*\{([^}]*)\}/g, fn$);
+	        for (j$ = 0, len1$ = labels.length; j$ < len1$; ++j$) {
+	          l = labels[j$];
+	          if (l.length) {
+	            this.setLabel(l);
+	            anchored = true;
+	          }
+	        }
+	        out.push(r + " \\tag{" + num + "}");
+	      }
+	    }
+	    return {
+	      body: out.join(" \\\\ "),
+	      id: anchored ? blockId : null
+	    };
+	    function fn$(_, l){
+	      labels.push(l.trim());
+	      return "";
+	    }
 	  };
 	  Generator.prototype.setNodeId = function(frag, id){
 	    var node;

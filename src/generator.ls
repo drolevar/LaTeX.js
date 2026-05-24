@@ -826,6 +826,62 @@ export class Generator
             @setLabel n
         id
 
+    # Split a multi-line math body on its top-level row breaks (\\),
+    # leaving \\ nested in braces or an inner environment
+    # (cases/matrix/substack/aligned/...) untouched.
+    splitMathRows: (body) ->
+        rows = []; cur = ""; depth = 0; i = 0; len = body.length
+        while i < len
+            if body.substr(i, 2) == "\\\\"
+                if depth == 0
+                    rows.push cur; cur = ""; i += 2
+                    if body.charAt(i) == "["
+                        k = body.indexOf "]", i
+                        i = if k >= 0 then k + 1 else i
+                else
+                    cur += "\\\\"; i += 2
+            else if body.substr(i, 2) == "\\{" or body.substr(i, 2) == "\\}"
+                cur += body.substr i, 2; i += 2
+            else if body.charAt(i) == "\\"
+                word = (/^\\([a-zA-Z]+)/.exec body.slice i)?.1 or ""
+                depth++ if word == "begin"
+                depth-- if word == "end" and depth > 0
+                seg = if word then "\\" + word else body.substr i, 2
+                cur += seg; i += seg.length
+            else
+                ch = body.charAt i
+                depth++ if ch == "{"
+                depth-- if ch == "}" and depth > 0
+                cur += ch; i++
+        rows.push cur
+        rows
+
+    # Number a multi-line math env (align/eqnarray/gather) row by row: a
+    # row without \nonumber/\notag steps the equation counter and gets a
+    # \tag{N}; its \label(s) register at N. All rows share one block anchor
+    # (KaTeX renders the env as one block, so a \ref lands on the block).
+    numberMathRows: (body) ->
+        blockId = "eq-" + @nextId!
+        anchored = false
+        out = []
+        for row in @splitMathRows body
+            if /\\(?:nonumber|notag)\b/.test row
+                out.push row.replace(/\\label\s*\{[^}]*\}/g, "")
+            else
+                @stepCounter \equation
+                @refCounter \equation, blockId
+                num = @counter \equation
+                labels = []
+                r = row.replace /\\label\s*\{([^}]*)\}/g, (_, l) ->
+                    labels.push l.trim!
+                    ""
+                for l in labels when l.length
+                    @setLabel l
+                    anchored := true
+                out.push r + " \\tag{" + num + "}"
+        body: out.join " \\\\ "
+        id:   if anchored then blockId else null
+
     # set the id on the first element node of a rendered fragment, so a
     # \ref to the equation lands on its rendered block
     setNodeId: (frag, id) !->

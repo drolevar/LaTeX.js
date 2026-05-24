@@ -1023,14 +1023,12 @@ math_env =
     escape end _ begin_group end_name:$math_env_name end_group
     & { return name === end_name; }
     {
-        // Pull \label out of the math body before KaTeX sees it (KaTeX
-        // renders \label as a red error token). A numbered equation
-        // registers them against its number; other envs just drop them.
-        var labels = [];
-        body = body.replace(/\\label\s*\x7b([^\x7d]*)\x7d/g, function(_m, n) { labels.push(n.trim()); return ""; });
-
+        // KaTeX renders \label as a red error token, so labels are pulled
+        // out of the math body here. equation registers them at a single
+        // number; align/eqnarray/gather number row by row; the rest
+        // (starred, displaymath, multline) just drop them.
         if (name === 'displaymath')
-            return g.parseMath(body, true);
+            return g.parseMath(body.replace(/\\label\s*\x7b[^\x7d]*\x7d/g, ""), true);
 
         var katexName = name === 'eqnarray'  ? 'align'
                       : name === 'eqnarray*' ? 'align*'
@@ -1038,12 +1036,21 @@ math_env =
                       : name === 'multline*' ? 'gather*'
                       : name;
 
+        var perRow = { align: 1, eqnarray: 1, gather: 1 };
         var id = null;
         if (name === 'equation' && !/\\tag\b/.test(body)) {
+            var labels = [];
+            body = body.replace(/\\label\s*\x7b([^\x7d]*)\x7d/g, function(_m, n) { labels.push(n.trim()); return ""; });
             id = g.equationLabel(labels);
             // KaTeX's \tag wraps the number in parens itself; passing
             // (N) here would render as ((N)).
             body += '\\tag{' + g.counter('equation') + '}';
+        } else if (perRow[name] && !/\\tag\b/.test(body)) {
+            var res = g.numberMathRows(body);
+            body = res.body;
+            id = res.id;
+        } else {
+            body = body.replace(/\\label\s*\x7b[^\x7d]*\x7d/g, "");
         }
         var frag = g.parseMath('\\begin{' + katexName + '}' + body
                                + '\\end{' + katexName + '}', true);
