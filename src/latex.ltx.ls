@@ -753,6 +753,22 @@ export class LaTeX
      ..\footnote =      <[ H o? g ]>
     \footnote           : (num, text) -> [ @g.create @g.inline, text, "footnote" ]
 
+    # setspace: line spacing is not modelled, so no-op the spacing commands;
+    # the spacing environment still renders its content.
+    args
+     ..\setstretch =    <[ HV rg ]>
+     ..\singlespacing = \
+     ..\onehalfspacing = \
+     ..\doublespacing = <[ HV ]>
+    \setstretch         : (factor) -> []
+    \singlespacing      : -> []
+    \onehalfspacing     : -> []
+    \doublespacing      : -> []
+    args
+     ..\spacing =       <[ V rg ]>
+    \spacing            : (factor) -> [ @g.create @g.block, null, "spacing" ]
+    \endspacing         : !->
+
     # \raisebox{drop}[height][depth]{content}: render content, ignore the
     # shift (drop captured raw so \height/\depth inside don't red-flag).
     args
@@ -1311,6 +1327,14 @@ export class LaTeX
     \newcommand             : (name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \new
     \renewcommand           : (name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \renew
     \providecommand         : (name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \provide
+
+    # \DeclareRobustCommand[*]{\cmd}[n][default]{body}: the LaTeX kernel's
+    # robust-command definer (standard, used widely in preambles/packages).
+    # We don't model expansion robustness, so route it through the same
+    # machinery as \newcommand, overwriting any prior definition.
+    args
+     ..\DeclareRobustCommand = <[ HV s m n? rg? rg ]>
+    \DeclareRobustCommand   : (star, name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \renew
 
     args
      ..\newtheorem =        <[ HV s i o? g o? ]>

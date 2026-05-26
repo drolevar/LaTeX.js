@@ -18733,7 +18733,7 @@ var export$$2;
 var slice$$1 = [].slice, arrayFrom$$1 = Array.from || function(x){return slice$$1.call(x);};
 export$$2 = (function(){
   LaTeX.displayName = 'LaTeX';
-  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, z18$, z19$, z20$, z21$, z22$, z23$, z24$, z25$, z26$, z27$, z28$, prototype = LaTeX.prototype;
+  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, z18$, z19$, z20$, z21$, z22$, z23$, z24$, z25$, z26$, z27$, z28$, z29$, z30$, z31$, prototype = LaTeX.prototype;
   providedPackages = ['calc', 'pspicture', 'picture', 'pict2e', 'keyval', 'comment'];
   LaTeX.prototype._title = null;
   LaTeX.prototype._author = null;
@@ -19532,13 +19532,34 @@ export$$2 = (function(){
     return [this.g.create(this.g.inline, text, "footnote")];
   };
   z19$ = args;
-  z19$['raisebox'] = ['H', 'rg', 'o?', 'o?', 'g'];
+  z19$['setstretch'] = ['HV', 'rg'];
+  z19$['singlespacing'] = z19$['onehalfspacing'] = z19$['doublespacing'] = ['HV'];
+  LaTeX.prototype['setstretch'] = function(factor){
+    return [];
+  };
+  LaTeX.prototype['singlespacing'] = function(){
+    return [];
+  };
+  LaTeX.prototype['onehalfspacing'] = function(){
+    return [];
+  };
+  LaTeX.prototype['doublespacing'] = function(){
+    return [];
+  };
+  z20$ = args;
+  z20$['spacing'] = ['V', 'rg'];
+  LaTeX.prototype['spacing'] = function(factor){
+    return [this.g.create(this.g.block, null, "spacing")];
+  };
+  LaTeX.prototype['endspacing'] = function(){};
+  z21$ = args;
+  z21$['raisebox'] = ['H', 'rg', 'o?', 'o?', 'g'];
   LaTeX.prototype['raisebox'] = function(drop, ht, dp, content){
     return [content];
   };
-  z20$ = args;
-  z20$['subfigure'] = ['V', 'o?', 'rg'];
-  z20$['minipage'] = ['V', 'o?', 'o?', 'o?', 'rg'];
+  z22$ = args;
+  z22$['subfigure'] = ['V', 'o?', 'rg'];
+  z22$['minipage'] = ['V', 'o?', 'o?', 'o?', 'rg'];
   LaTeX.prototype['subfigure'] = function(pos, width){
     var box;
     box = this.g.create(this.g.block, null, "subfigure");
@@ -19551,11 +19572,11 @@ export$$2 = (function(){
     box.setAttribute("style", "display:inline-block;vertical-align:top;width:" + (this.g.cssDimen(width) || 'auto') + ";");
     return [box];
   };
-  z21$ = args;
-  z21$['thicklines'] = ['HV'];
-  z21$['thinlines'] = ['HV'];
-  z21$['linethickness'] = ['HV', 'l'];
-  z21$['arrowlength'] = ['HV', 'l'];
+  z23$ = args;
+  z23$['thicklines'] = ['HV'];
+  z23$['thinlines'] = ['HV'];
+  z23$['linethickness'] = ['HV', 'l'];
+  z23$['arrowlength'] = ['HV', 'l'];
   LaTeX.prototype['thinlines'] = function(){
     this.g.setLength('@wholewidth', new this.g.Length(0.4, "pt"));
   };
@@ -19905,10 +19926,10 @@ export$$2 = (function(){
     this.g.stepCounter(c);
     return [this.g.refCounter(c)];
   };
-  z22$ = args;
-  z22$['newcommand'] = z22$['renewcommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
-  z23$ = args;
-  z23$['providecommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
+  z24$ = args;
+  z24$['newcommand'] = z24$['renewcommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
+  z25$ = args;
+  z25$['providecommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
   LaTeX.prototype['newcommand'] = function(name, nargs, def, body){
     this.g.defineUserCommand(name, nargs, def, body, 'new');
   };
@@ -19918,17 +19939,22 @@ export$$2 = (function(){
   LaTeX.prototype['providecommand'] = function(name, nargs, def, body){
     this.g.defineUserCommand(name, nargs, def, body, 'provide');
   };
-  z24$ = args;
-  z24$['newtheorem'] = ['HV', 's', 'i', 'o?', 'g', 'o?'];
-  z24$['theoremstyle'] = ['HV', 'g'];
+  z26$ = args;
+  z26$['DeclareRobustCommand'] = ['HV', 's', 'm', 'n?', 'rg?', 'rg'];
+  LaTeX.prototype['DeclareRobustCommand'] = function(star, name, nargs, def, body){
+    this.g.defineUserCommand(name, nargs, def, body, 'renew');
+  };
+  z27$ = args;
+  z27$['newtheorem'] = ['HV', 's', 'i', 'o?', 'g', 'o?'];
+  z27$['theoremstyle'] = ['HV', 'g'];
   LaTeX.prototype['newtheorem'] = function(star, env, shared, title, parent){
     this.g.defineTheorem(env, shared, title, parent, !star);
   };
   LaTeX.prototype['theoremstyle'] = function(style){
     return [];
   };
-  z25$ = args;
-  z25$['alph'] = z25$['Alph'] = z25$['arabic'] = z25$['roman'] = z25$['Roman'] = z25$['fnsymbol'] = ['H', 's', 'i?'];
+  z28$ = args;
+  z28$['alph'] = z28$['Alph'] = z28$['arabic'] = z28$['roman'] = z28$['Roman'] = z28$['fnsymbol'] = ['H', 's', 'i?'];
   LaTeX.prototype['alph'] = function(star, c){
     if (c) {
       return [this.g['alph'](this.g.counter(c))];
@@ -20054,28 +20080,28 @@ export$$2 = (function(){
   LaTeX.prototype['makeatletter'] = function(){};
   args['makeatother'] = ['HV'];
   LaTeX.prototype['makeatother'] = function(){};
-  z26$ = args;
-  z26$['pagestyle'] = ['HV', 'i'];
+  z29$ = args;
+  z29$['pagestyle'] = ['HV', 'i'];
   LaTeX.prototype['pagestyle'] = function(s){};
-  z27$ = args;
-  z27$['linebreak'] = ['HV', 'n?'];
-  z27$['nolinebreak'] = ['HV', 'n?'];
-  z27$['fussy'] = ['HV'];
-  z27$['sloppy'] = ['HV'];
+  z30$ = args;
+  z30$['linebreak'] = ['HV', 'n?'];
+  z30$['nolinebreak'] = ['HV', 'n?'];
+  z30$['fussy'] = ['HV'];
+  z30$['sloppy'] = ['HV'];
   LaTeX.prototype['linebreak'] = function(o){};
   LaTeX.prototype['nolinebreak'] = function(o){};
   LaTeX.prototype['fussy'] = function(){};
   LaTeX.prototype['sloppy'] = function(){};
-  z28$ = args;
-  z28$['pagebreak'] = ['HV', 'n?'];
-  z28$['nopagebreak'] = ['HV', 'n?'];
-  z28$['samepage'] = ['HV'];
-  z28$['enlargethispage'] = ['HV', 's', 'l'];
-  z28$['newpage'] = ['HV'];
-  z28$['clearpage'] = ['HV'];
-  z28$['cleardoublepage'] = ['HV'];
-  z28$['vfill'] = ['HV'];
-  z28$['thispagestyle'] = ['HV', 'i'];
+  z31$ = args;
+  z31$['pagebreak'] = ['HV', 'n?'];
+  z31$['nopagebreak'] = ['HV', 'n?'];
+  z31$['samepage'] = ['HV'];
+  z31$['enlargethispage'] = ['HV', 's', 'l'];
+  z31$['newpage'] = ['HV'];
+  z31$['clearpage'] = ['HV'];
+  z31$['cleardoublepage'] = ['HV'];
+  z31$['vfill'] = ['HV'];
+  z31$['thispagestyle'] = ['HV', 'i'];
   LaTeX.prototype['pagebreak'] = function(o){};
   LaTeX.prototype['nopagebreak'] = function(o){};
   LaTeX.prototype['samepage'] = function(){};

@@ -48,5 +48,14 @@ const render = (tex) => {
   ok(!/latex-unsupported/.test(html), 'num/makecell/booktabs are not unsupported');
   ok(/1234/.test(html) && /cell/.test(html), 'num + makecell keep their content');
 }
+// (5) \DeclareRobustCommand defines a command via the \newcommand machinery
+// (here in the preamble, with the star form, like a paper's \escapeus).
+{
+  const { html, g } = render(
+    '\\documentclass{article}\\DeclareRobustCommand*{\\foo}[1]{[#1]}\n'
+    + '\\begin{document}\\foo{x}\\end{document}');
+  ok(g.hasMacro('foo'), 'DeclareRobustCommand defines the command');
+  ok(/\[x\]/.test(html), 'DeclareRobustCommand command expands with its arg');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
