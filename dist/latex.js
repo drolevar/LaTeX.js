@@ -18737,7 +18737,7 @@
 	var slice$$1 = [].slice, arrayFrom$$1 = Array.from || function(x){return slice$$1.call(x);};
 	export$ = (function(){
 	  LaTeX.displayName = 'LaTeX';
-	  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, z18$, z19$, z20$, z21$, z22$, z23$, z24$, z25$, z26$, z27$, z28$, z29$, z30$, z31$, prototype = LaTeX.prototype;
+	  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, z18$, z19$, z20$, z21$, z22$, z23$, z24$, z25$, z26$, z27$, z28$, z29$, z30$, z31$, z32$, z33$, prototype = LaTeX.prototype;
 	  providedPackages = ['calc', 'pspicture', 'picture', 'pict2e', 'keyval', 'comment'];
 	  LaTeX.prototype._title = null;
 	  LaTeX.prototype._author = null;
@@ -19577,10 +19577,30 @@
 	    return [box];
 	  };
 	  z23$ = args;
-	  z23$['thicklines'] = ['HV'];
-	  z23$['thinlines'] = ['HV'];
-	  z23$['linethickness'] = ['HV', 'l'];
-	  z23$['arrowlength'] = ['HV', 'l'];
+	  z23$['adjustbox'] = ['H', 'rg', 'g'];
+	  LaTeX.prototype['adjustbox'] = function(keys, content){
+	    return [content];
+	  };
+	  z24$ = args;
+	  z24$['wrapfigure'] = ['V', 'o?', 'rg', 'rg'];
+	  z24$['wraptable'] = ['V', 'o?', 'rg', 'rg'];
+	  LaTeX.prototype['wrapfigure'] = function(lines, place, width){
+	    var box;
+	    box = this.g.create(this.g.block, null, "wrapfigure");
+	    box.setAttribute("style", "width:" + (this.g.cssDimen(width) || 'auto') + ";");
+	    return [box];
+	  };
+	  LaTeX.prototype['wraptable'] = function(lines, place, width){
+	    var box;
+	    box = this.g.create(this.g.block, null, "wraptable");
+	    box.setAttribute("style", "width:" + (this.g.cssDimen(width) || 'auto') + ";");
+	    return [box];
+	  };
+	  z25$ = args;
+	  z25$['thicklines'] = ['HV'];
+	  z25$['thinlines'] = ['HV'];
+	  z25$['linethickness'] = ['HV', 'l'];
+	  z25$['arrowlength'] = ['HV', 'l'];
 	  LaTeX.prototype['thinlines'] = function(){
 	    this.g.setLength('@wholewidth', new this.g.Length(0.4, "pt"));
 	  };
@@ -19930,10 +19950,10 @@
 	    this.g.stepCounter(c);
 	    return [this.g.refCounter(c)];
 	  };
-	  z24$ = args;
-	  z24$['newcommand'] = z24$['renewcommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
-	  z25$ = args;
-	  z25$['providecommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
+	  z26$ = args;
+	  z26$['newcommand'] = z26$['renewcommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
+	  z27$ = args;
+	  z27$['providecommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
 	  LaTeX.prototype['newcommand'] = function(name, nargs, def, body){
 	    this.g.defineUserCommand(name, nargs, def, body, 'new');
 	  };
@@ -19943,22 +19963,22 @@
 	  LaTeX.prototype['providecommand'] = function(name, nargs, def, body){
 	    this.g.defineUserCommand(name, nargs, def, body, 'provide');
 	  };
-	  z26$ = args;
-	  z26$['DeclareRobustCommand'] = ['HV', 's', 'm', 'n?', 'rg?', 'rg'];
+	  z28$ = args;
+	  z28$['DeclareRobustCommand'] = ['HV', 's', 'm', 'n?', 'rg?', 'rg'];
 	  LaTeX.prototype['DeclareRobustCommand'] = function(star, name, nargs, def, body){
 	    this.g.defineUserCommand(name, nargs, def, body, 'renew');
 	  };
-	  z27$ = args;
-	  z27$['newtheorem'] = ['HV', 's', 'i', 'o?', 'g', 'o?'];
-	  z27$['theoremstyle'] = ['HV', 'g'];
+	  z29$ = args;
+	  z29$['newtheorem'] = ['HV', 's', 'i', 'o?', 'g', 'o?'];
+	  z29$['theoremstyle'] = ['HV', 'g'];
 	  LaTeX.prototype['newtheorem'] = function(star, env, shared, title, parent){
 	    this.g.defineTheorem(env, shared, title, parent, !star);
 	  };
 	  LaTeX.prototype['theoremstyle'] = function(style){
 	    return [];
 	  };
-	  z28$ = args;
-	  z28$['alph'] = z28$['Alph'] = z28$['arabic'] = z28$['roman'] = z28$['Roman'] = z28$['fnsymbol'] = ['H', 's', 'i?'];
+	  z30$ = args;
+	  z30$['alph'] = z30$['Alph'] = z30$['arabic'] = z30$['roman'] = z30$['Roman'] = z30$['fnsymbol'] = ['H', 's', 'i?'];
 	  LaTeX.prototype['alph'] = function(star, c){
 	    if (c) {
 	      return [this.g['alph'](this.g.counter(c))];
@@ -20084,28 +20104,28 @@
 	  LaTeX.prototype['makeatletter'] = function(){};
 	  args['makeatother'] = ['HV'];
 	  LaTeX.prototype['makeatother'] = function(){};
-	  z29$ = args;
-	  z29$['pagestyle'] = ['HV', 'i'];
+	  z31$ = args;
+	  z31$['pagestyle'] = ['HV', 'i'];
 	  LaTeX.prototype['pagestyle'] = function(s){};
-	  z30$ = args;
-	  z30$['linebreak'] = ['HV', 'n?'];
-	  z30$['nolinebreak'] = ['HV', 'n?'];
-	  z30$['fussy'] = ['HV'];
-	  z30$['sloppy'] = ['HV'];
+	  z32$ = args;
+	  z32$['linebreak'] = ['HV', 'n?'];
+	  z32$['nolinebreak'] = ['HV', 'n?'];
+	  z32$['fussy'] = ['HV'];
+	  z32$['sloppy'] = ['HV'];
 	  LaTeX.prototype['linebreak'] = function(o){};
 	  LaTeX.prototype['nolinebreak'] = function(o){};
 	  LaTeX.prototype['fussy'] = function(){};
 	  LaTeX.prototype['sloppy'] = function(){};
-	  z31$ = args;
-	  z31$['pagebreak'] = ['HV', 'n?'];
-	  z31$['nopagebreak'] = ['HV', 'n?'];
-	  z31$['samepage'] = ['HV'];
-	  z31$['enlargethispage'] = ['HV', 's', 'l'];
-	  z31$['newpage'] = ['HV'];
-	  z31$['clearpage'] = ['HV'];
-	  z31$['cleardoublepage'] = ['HV'];
-	  z31$['vfill'] = ['HV'];
-	  z31$['thispagestyle'] = ['HV', 'i'];
+	  z33$ = args;
+	  z33$['pagebreak'] = ['HV', 'n?'];
+	  z33$['nopagebreak'] = ['HV', 'n?'];
+	  z33$['samepage'] = ['HV'];
+	  z33$['enlargethispage'] = ['HV', 's', 'l'];
+	  z33$['newpage'] = ['HV'];
+	  z33$['clearpage'] = ['HV'];
+	  z33$['cleardoublepage'] = ['HV'];
+	  z33$['vfill'] = ['HV'];
+	  z33$['thispagestyle'] = ['HV', 'i'];
 	  LaTeX.prototype['pagebreak'] = function(o){};
 	  LaTeX.prototype['nopagebreak'] = function(o){};
 	  LaTeX.prototype['samepage'] = function(){};
@@ -20654,7 +20674,7 @@
 	    }
 	    n = nargs != null ? parseInt(("" + nargs).replace(/[^0-9]/g, ""), 10) || 0 : 0;
 	    body == null && (body = "");
-	    this._katexMacros["\\" + cs] = body;
+	    this._katexMacros["\\" + cs] = body.replace(/\\color\s*\{[^}]*\}/g, "");
 	    if (this.hasMacro(cs) && ((ref$ = this._userArgs) != null ? ref$[cs] : void 8) == null) {
 	      return;
 	    }

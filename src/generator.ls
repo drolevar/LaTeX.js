@@ -207,7 +207,11 @@ export class Generator
         return if mode == \provide and exists
         n = if nargs? then (parseInt (("" + nargs).replace /[^0-9]/g, ""), 10) or 0 else 0
         body ?= ""
-        @_katexMacros["\\" + cs] = body
+        # KaTeX rejects custom xcolor names (e.g. blind_magenta -- underscore +
+        # not a built-in colour), erroring the whole formula. Strip \color
+        # switches from the math-mode (KaTeX) expansion so colour macros render
+        # uncoloured instead of red-erroring. Text-mode expansion keeps colour.
+        @_katexMacros["\\" + cs] = body.replace(/\\color\s*\{[^}]*\}/g, "")
         # Generator-side (text-mode) expansion is for genuinely new commands
         # or our own earlier user macros only. Redefining a BUILT-IN (an
         # environment like enumerate, a programmatic macro like \theenumi)

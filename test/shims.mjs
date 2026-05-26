@@ -67,5 +67,25 @@ const render = (tex) => {
   ok(g.hasMacro('foo'), 'nc (alias of newcommand) defines its target');
   ok(/ZZ/.test(html), 'nc-defined macro expands in the body');
 }
+// (7) a macro colouring math with a custom \definecolor name (KaTeX rejects
+// e.g. blind_magenta) must still render: the \color switch is stripped from
+// the KaTeX expansion, so the math renders uncoloured, not as a red error.
+{
+  const { html } = render(
+    '\\documentclass{article}\\usepackage{xcolor}\\definecolor{blind_magenta}{HTML}{DC267F}\n'
+    + '\\newcommand{\\vv}{{\\color{blind_magenta}\\mathcal{T}}}\n'
+    + '\\begin{document}$\\vv = \\vv$\\end{document}');
+  ok(!/katex-error/.test(html), 'custom-colour math macro renders without a KaTeX error');
+  ok(/class="katex"/.test(html), 'the math actually rendered');
+}
+// (8) adjustbox + wrapfigure render their content / box, not red
+{
+  const { html } = render(
+    '\\documentclass{article}\\usepackage{wrapfig}\\begin{document}\n'
+    + '\\adjustbox{trim=0 0 0 1cm,clip}{ABC}\n'
+    + '\\begin{wrapfigure}{r}{0.3\\textwidth}XYZ\\end{wrapfigure}\\end{document}');
+  ok(!/latex-unsupported/.test(html), 'adjustbox/wrapfigure are not unsupported');
+  ok(/ABC/.test(html) && /XYZ/.test(html), 'adjustbox/wrapfigure content renders');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

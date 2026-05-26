@@ -789,6 +789,25 @@ export class LaTeX
         box.setAttribute "style", "display:inline-block;vertical-align:top;width:#{@g.cssDimen(width) or 'auto'};"
         [ box ]
 
+    # adjustbox: render the content, ignore the trim/clip/scale keys.
+    args
+     ..\adjustbox =     <[ H rg g ]>
+    \adjustbox          : (keys, content) -> [ content ]
+
+    # wrapfig: wrapfigure/wraptable [lines]{placement}{width} -> a width box
+    # (no float; placement ignored).
+    args
+     ..\wrapfigure =    <[ V o? rg rg ]>
+     ..\wraptable =     <[ V o? rg rg ]>
+    \wrapfigure         : (lines, place, width) ->
+        box = @g.create @g.block, null, "wrapfigure"
+        box.setAttribute "style", "width:#{@g.cssDimen(width) or 'auto'};"
+        [ box ]
+    \wraptable          : (lines, place, width) ->
+        box = @g.create @g.block, null, "wraptable"
+        box.setAttribute "style", "width:#{@g.cssDimen(width) or 'auto'};"
+        [ box ]
+
 
 
     /*
