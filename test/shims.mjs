@@ -57,5 +57,15 @@ const render = (tex) => {
   ok(g.hasMacro('foo'), 'DeclareRobustCommand defines the command');
   ok(/\[x\]/.test(html), 'DeclareRobustCommand command expands with its arg');
 }
+// (6) \newcommand{\nc}{\newcommand} aliases a definer; \nc{..}{..} must behave
+// like \newcommand (the body alone can't grab the trailing args, so \nc is
+// aliased straight to the definer).
+{
+  const { html, g } = render(
+    '\\documentclass{article}\\newcommand{\\nc}{\\newcommand}\\nc{\\foo}{ZZ}\n'
+    + '\\begin{document}\\foo\\end{document}');
+  ok(g.hasMacro('foo'), 'nc (alias of newcommand) defines its target');
+  ok(/ZZ/.test(html), 'nc-defined macro expands in the body');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

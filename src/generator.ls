@@ -215,6 +215,24 @@ export class Generator
         # machinery; leave built-ins to their native impl - math usage is
         # still honored via the KaTeX macro registered above.
         return if @hasMacro(cs) and not @_userArgs?[cs]?
+
+        # Alias pattern, e.g. \newcommand{\nc}{\newcommand}: \nc's body is a
+        # bare definer control sequence and it takes no args, so \nc{..}{..}
+        # is meant to behave like that definer. Reparsing the body alone
+        # cannot capture the trailing {name}{def} args, so alias \nc straight
+        # to the definer's argspec + behaviour instead.
+        if n == 0 and body?
+            bt = body.trim!
+            bs = String.fromCharCode 92
+            aliasMode = null
+            aliasMode := \new     if bt == bs + "newcommand"
+            aliasMode := \renew   if bt == bs + "renewcommand"
+            aliasMode := \provide if bt == bs + "providecommand"
+            if aliasMode?
+                g0 = this
+                @defineMacro cs, <[ HV m n? rg? rg ]>, (nm, na, df, bd) !-> g0.defineUserCommand nm, na, df, bd, aliasMode
+                return
+
         g = this
         spec = [\H]
         if def?

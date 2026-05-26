@@ -20640,7 +20640,7 @@
 	    this._macros[name] = impl;
 	  };
 	  Generator.prototype.defineUserCommand = function(name, nargs, def, body, mode){
-	    var cs, exists, n, ref$, g, spec, i$;
+	    var cs, exists, n, ref$, bt, bs, aliasMode, g0, g, spec, i$;
 	    if (!name) {
 	      return;
 	    }
@@ -20657,6 +20657,27 @@
 	    this._katexMacros["\\" + cs] = body;
 	    if (this.hasMacro(cs) && ((ref$ = this._userArgs) != null ? ref$[cs] : void 8) == null) {
 	      return;
+	    }
+	    if (n === 0 && body != null) {
+	      bt = body.trim();
+	      bs = String.fromCharCode(92);
+	      aliasMode = null;
+	      if (bt === bs + "newcommand") {
+	        aliasMode = 'new';
+	      }
+	      if (bt === bs + "renewcommand") {
+	        aliasMode = 'renew';
+	      }
+	      if (bt === bs + "providecommand") {
+	        aliasMode = 'provide';
+	      }
+	      if (aliasMode != null) {
+	        g0 = this;
+	        this.defineMacro(cs, ['HV', 'm', 'n?', 'rg?', 'rg'], function(nm, na, df, bd){
+	          g0.defineUserCommand(nm, na, df, bd, aliasMode);
+	        });
+	        return;
+	      }
 	    }
 	    g = this;
 	    spec = ['H'];
