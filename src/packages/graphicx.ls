@@ -62,9 +62,11 @@ export class Graphicx
         @\scalebox -1, 1, text
 
 
-    # \resizebox*{h-length}{v-length}{text}
-    args.\resizebox = <[ H s l l g ]>
-    \resizebox    : (s, hl, vl, text) ->
+    # \resizebox*{h-length}{v-length}{text} - render the content at natural
+    # size, ignoring the resize. h/v are captured raw (rg) since they may be
+    # \textwidth, !, \width etc. which the length parser can't handle.
+    args.\resizebox = <[ H s rg rg g ]>
+    \resizebox    : (s, hl, vl, text) -> [ text ]
 
 
     # 4.4 Including Graphics Files

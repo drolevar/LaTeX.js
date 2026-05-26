@@ -277,6 +277,32 @@ export class Generator
     isHVmode:   (marco) -> @argsFor(marco)?.0 == \HV
     isPreamble: (marco) -> @argsFor(marco)?.0 == \P
 
+    # A macro defined at runtime via \newcommand/\newtheorem (tracked in
+    # @_userArgs). Built-ins are not in @_userArgs. Used so the preamble
+    # loop expands a paper's own macros there - many papers define their
+    # notation via meta-macros (\newcommand whose body is a \newcommand)
+    # invoked in the preamble; without this those targets never get defined.
+    isUserMacro: (marco) -> @_userArgs?[marco]?
+
+    # Convert a LaTeX width/height (raw, e.g. from a {..} box arg) to a valid
+    # CSS dimension: \textwidth/\columnwidth/\linewidth-relative -> percent of
+    # the container; absolute CSS units pass through; bp -> pt; else null.
+    cssDimen: (v) ->
+        return null if not v?
+        s = (v + "").trim!
+        bs = String.fromCharCode 92
+        for kw in <[ textwidth columnwidth linewidth hsize ]>
+            idx = s.indexOf(bs + kw)
+            if idx >= 0
+                num = s.slice(0, idx).trim!
+                n = if num == "" then 1 else parseFloat(num)
+                return "#{if isNaN(n) then 100 else n * 100}%"
+        if s.match(/^[\d.]+\s*(cm|mm|in|pt|pc|px|em|ex|rem|%)$/)
+            return s
+        if m = s.match(/^([\d.]+)\s*bp$/)
+            return "#{m.1}pt"
+        null
+
     macro: (name, args) ->
         if symbols.has name
             return [ @createText symbols.get name ]

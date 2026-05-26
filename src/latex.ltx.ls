@@ -703,6 +703,77 @@ export class LaTeX
         [ box ]
 
 
+    ### compatibility shims for common packages (xspace, booktabs, makecell,
+    ### multirow, siunitx \num, amsmath \ensuremath) + subcaption/minipage
+    ### boxes. Render content or no-op so papers using them don't litter the
+    ### output with red placeholders.
+
+    args
+     ..\xspace =        \
+     ..\hfill =         \
+     ..\hfil =          <[ H ]>
+    \xspace             : -> [ @g.createText " " ]
+    \hfill              : -> []
+    \hfil               : -> []
+
+    args
+     ..\num =           <[ H g ]>
+    \num                : (n) -> [ n ]
+
+    args
+     ..\ensuremath =    <[ H rg ]>
+    \ensuremath         : (raw) -> [ @g.parseMath raw, false ]
+
+    # booktabs rules: no rule support in inline-as-block tables yet, so drop
+    # them (the table content still renders) rather than red-flag.
+    args
+     ..\toprule =       \
+     ..\midrule =       \
+     ..\bottomrule =    \
+     ..\addlinespace =  <[ HV o? ]>
+     ..\cmidrule =      <[ HV o? g ]>
+    \toprule            : -> []
+    \midrule            : -> []
+    \bottomrule         : -> []
+    \addlinespace       : -> []
+    \cmidrule           : -> []
+
+    # cell span / multi-line cell: render the content, ignore the span/width.
+    args
+     ..\multirow =      <[ H g g g ]>
+     ..\multicolumn =   <[ H g g g ]>
+     ..\makecell =      <[ H o? g ]>
+    \multirow           : (rows, width, content) -> [ content ]
+    \multicolumn        : (cols, spec, content) -> [ content ]
+    \makecell           : (opt, content) -> [ content ]
+
+    # \footnote[num]{text}: no page model, so render the note text inline in
+    # a styled span (content preserved) rather than red-flagging it.
+    args
+     ..\footnote =      <[ H o? g ]>
+    \footnote           : (num, text) -> [ @g.create @g.inline, text, "footnote" ]
+
+    # \raisebox{drop}[height][depth]{content}: render content, ignore the
+    # shift (drop captured raw so \height/\depth inside don't red-flag).
+    args
+     ..\raisebox =      <[ H rg o? o? g ]>
+    \raisebox           : (drop, ht, dp, content) -> [ content ]
+
+    # subfigure (subcaption) + minipage: width-constrained inline boxes so
+    # multi-panel figures sit side by side instead of overflowing full-width.
+    args
+     ..\subfigure =     <[ V o? rg ]>
+     ..\minipage =      <[ V o? o? o? rg ]>
+    \subfigure          : (pos, width) ->
+        box = @g.create @g.block, null, "subfigure"
+        box.setAttribute "style", "display:inline-block;vertical-align:top;width:#{@g.cssDimen(width) or '100%'};"
+        [ box ]
+    \minipage           : (pos, height, ipos, width) ->
+        box = @g.create @g.block, null, "minipage"
+        box.setAttribute "style", "display:inline-block;vertical-align:top;width:#{@g.cssDimen(width) or 'auto'};"
+        [ box ]
+
+
 
     /*
     \shortstack[pos]{...\\...\\...}, pos: r,l,c (horizontal alignment)
@@ -1324,7 +1395,12 @@ export class LaTeX
     \usepackage         : (opts, packages, version) !->
         options = Object.assign {}, @g.documentClass.options, opts
 
-        for pkg in packages
+        for pkg0 in packages
+            # The fork doesn't model package dependencies, but several common
+            # packages pull graphicx in transitively (papers then use
+            # \includegraphics without an explicit \usepackage{graphicx}). Map
+            # them onto graphicx so the graphics macros load.
+            pkg = if pkg0 in <[ graphics subcaption adjustbox wrapfig float subfig ]> then "graphicx" else pkg0
             continue if providedPackages.includes pkg
 
             # load and instantiate the package

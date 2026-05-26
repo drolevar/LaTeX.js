@@ -10,7 +10,7 @@
 // parses a full LaTeX document, or just the contents of the document environment; returns the generator
 latex =
     &with_preamble
-    (skip_all_space escape ((&is_hvmode / &is_preamble) macro / &{ return g && g._options && g._options.tolerant; } !begin !end unknown_macro) / &{ return g && g._options && g._options.tolerant; } !(skip_all_space escape begin _ begin_group "document") .)*
+    (skip_all_space escape ((&is_hvmode / &is_user_macro / &is_preamble) macro / &{ return g && g._options && g._options.tolerant; } !begin !end unknown_macro) / &{ return g && g._options && g._options.tolerant; } !(skip_all_space escape begin _ begin_group "document") .)*
     skip_all_space
     (begin_doc / &{ error("expected \\begin{document}") })
         document
@@ -253,6 +253,9 @@ is_hmode =
 
 is_hvmode =
     id:identifier &{ return g.isHVmode(id); }
+
+is_user_macro =
+    id:identifier &{ return g.isUserMacro(id); }
 
 
 is_vmode_env =
