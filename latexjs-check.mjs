@@ -78,6 +78,69 @@ try {
             i = html.indexOf('katex-error', i + 1); shown++;
         }
     }
+
+    // Shrapnel scan: silent fidelity failures. Constructs that render
+    // without throwing can still leak source into the page (tabular
+    // becomes ampersand soup; an unknown environment becomes a fused
+    // "beginitemize" word). Scan the rendered TEXT for leak
+    // signatures. Math, svg and verbatim blocks are stripped first:
+    // raw TeX legitimately lives there (KaTeX MathML annotations
+    // carry the original source), and leaks inside verbatim are
+    // authored content, not renderer failures.
+    const text = html
+        .replace(/<math[\s\S]*?<\/math>/g, ' ')
+        .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
+        .replace(/<pre[\s\S]*?<\/pre>/g, ' ')
+        .replace(/<\/(?:p|div|h[1-6]|li|tr|table)>/g, '\n')
+        .replace(/<br[^>]*>/g, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n))
+        // The renderer sprinkles zero-width break chars into text;
+        // they defeat \b and \s boundaries, so drop them before
+        // scanning. Built via fromCharCode to keep this file ASCII.
+        .replace(new RegExp('[' +
+            String.fromCharCode(0x200b, 0x2060, 0xfeff) + ']', 'g'), '');
+
+    const ENV_WORDS = 'itemize|enumerate|description|tabularx?|table|' +
+        'longtable|figure|center|minipage|wraptable|wrapfigure|' +
+        'algorithmic?|abstract|frame|tcolorbox|promptbox|subfigure|' +
+        'thebibliography|proof|theorem|lemma|corollary|verbatim|' +
+        'lstlisting|minted|quote|quotation';
+    // amp-soup is counted per line (3+ cell separators on one line is
+    // the tabular fingerprint); the rest are plain regex hits.
+    const SIGS = [
+        ['colspec', /(?:^|\s)[lcr|]{4,}(?=\s|$)|\(lr\)\d+-\d+/g],
+        ['fused-env',
+         new RegExp('\\b(?:begin|end)(?:' + ENV_WORDS + ')\\*?\\b', 'g')],
+        ['float-spec', /\[[htbp!]{2,4}\]/g],
+        ['unresolved-ref', /\?\?/g],
+    ];
+    const shrapnel = {};
+    const sample = {};
+    const note = (sig, m, line) => {
+        shrapnel[sig] = (shrapnel[sig] || 0) + 1;
+        if (!sample[sig]) {
+            const i = line.indexOf(m);
+            sample[sig] = line
+                .slice(Math.max(0, i - 25), i + m.length + 35)
+                .replace(/\s+/g, ' ').trim();
+        }
+    };
+    for (const line of text.split('\n')) {
+        const amps = (line.match(/ & /g) || []).length;
+        if (amps >= 3) note('amp-soup', ' & ', line);
+        for (const [sig, re] of SIGS) {
+            re.lastIndex = 0;
+            let m;
+            while ((m = re.exec(line)) !== null) note(sig, m[0], line);
+        }
+    }
+    for (const [sig, n] of Object.entries(shrapnel)
+             .sort((a, b) => b[1] - a[1])) {
+        console.log(`  SHRAPNEL ${sig} x${n} sample="${sample[sig]}"`);
+    }
     process.exit(0);
 } catch (e) {
     const loc = e.location
