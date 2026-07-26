@@ -167,25 +167,26 @@ export class Generator
 
     ### tabular
 
+    # read a balanced {..} at s[j] (j on '{'); returns [content, next].
+    readBalancedGroup: (s, j) ->
+        depth = 0
+        start = j
+        while j < s.length
+            ch = s[j]
+            if ch == '{'
+                depth = depth + 1
+            else if ch == '}'
+                depth = depth - 1
+                return [ s.substring(start + 1, j), j + 1 ] if depth == 0
+            j = j + 1
+        [ s.substring(start + 1), s.length ]
+
     # Column spec text (e.g. "|l|c|p{3cm}|") -> array of
     # { align, borderLeft, borderRight }. Widths and @/!/>/< content are
     # consumed; *{n}{sub} is pre-expanded. F2 extends the column types.
     parseColspec: (spec) ->
         cols = []
         return cols if not spec
-        # read a balanced {..} at s[j] (j on '{'); returns [content, next].
-        readGroup = (s, j) ->
-            depth = 0
-            start = j
-            while j < s.length
-                ch = s[j]
-                if ch == '{'
-                    depth = depth + 1
-                else if ch == '}'
-                    depth = depth - 1
-                    return [ s.substring(start + 1, j), j + 1 ] if depth == 0
-                j = j + 1
-            [ s.substring(start + 1), s.length ]
         border = 0
         i = 0
         n = spec.length
@@ -194,7 +195,9 @@ export class Generator
             if c == ' ' or c == '\t' or c == '\n' or c == '\r'
                 i = i + 1
             else if c == '|'
+                # a | borders both the column before it and the one after
                 border = border + 1
+                cols[cols.length - 1].borderRight = true if cols.length > 0
                 i = i + 1
             else if c == 'l' or c == 'c' or c == 'r'
                 cols.push { align: c, borderLeft: border > 0, borderRight: false }
@@ -204,7 +207,7 @@ export class Generator
                 # p/m/b take a {width}; X (tabularx) stretches. All left-align.
                 i = i + 1
                 if spec[i] == '{'
-                    r = readGroup spec, i
+                    r = @readBalancedGroup spec, i
                     i = r[1]
                 cols.push { align: 'l', borderLeft: border > 0, borderRight: false }
                 border = 0
@@ -213,42 +216,75 @@ export class Generator
                 rule = c == '!'
                 i = i + 1
                 if spec[i] == '{'
-                    r = readGroup spec, i
+                    r = @readBalancedGroup spec, i
                     i = r[1]
                 border = border + 1 if rule
             else if c == '>' or c == '<'
                 # array-package per-cell decl; consume {..}, ignored in F1.
                 i = i + 1
                 if spec[i] == '{'
-                    r = readGroup spec, i
+                    r = @readBalancedGroup spec, i
                     i = r[1]
             else if c == '*'
-                # *{n}{sub}: repeat sub n times, pre-expanded.
+                # *{n}{sub}: repeat sub n times, pre-expanded. A pending
+                # leading border applies once, to the far-left column only -
+                # not to the shared sub-spec template (which would leak it
+                # into every repetition).
                 i = i + 1
                 reps = 0
                 if spec[i] == '{'
-                    r = readGroup spec, i
+                    r = @readBalancedGroup spec, i
                     reps = (parseInt r[0].trim!, 10) or 0
                     i = r[1]
                 sub = ''
                 if spec[i] == '{'
-                    r = readGroup spec, i
+                    r = @readBalancedGroup spec, i
                     sub = r[0]
                     i = r[1]
                 if reps > 0 and sub
                     expanded = @parseColspec sub
-                    if expanded.length > 0 and border > 0
-                        expanded[0].borderLeft = true
-                        border = 0
+                    pendingBorder = border > 0
+                    border = 0
                     for _r from 1 to reps
-                        for col in expanded
-                            cols.push { align: col.align, borderLeft: col.borderLeft, borderRight: col.borderRight }
+                        for col, ci in expanded
+                            bl = col.borderLeft
+                            bl = true if pendingBorder and _r == 1 and ci == 0
+                            cols.push { align: col.align, borderLeft: bl, borderRight: col.borderRight }
             else
                 i = i + 1
-        # a trailing | (or !) is the right border of the last column
-        if border > 0 and cols.length > 0
-            cols[cols.length - 1].borderRight = true
         cols
+
+    # \multicolumn{n}{spec}{content} recognized at a cell's start -> a
+    # spanning td whose own alignment/borders come from its own spec.
+    # Returns null (not a match) so the caller falls back to normal
+    # cell handling - never throws.
+    parseMulticolumn: (text) ->
+        m = text.match /^\s*\\multicolumn\b/
+        return null if not m
+        i = m[0].length
+        skip = !->
+            while text[i] == ' ' or text[i] == '\t' or text[i] == '\n' or text[i] == '\r'
+                i = i + 1
+        skip!
+        return null if text[i] != '{'
+        r = @readBalancedGroup text, i
+        nText = r[0]
+        i = r[1]
+        skip!
+        return null if text[i] != '{'
+        r = @readBalancedGroup text, i
+        specText = r[0]
+        i = r[1]
+        skip!
+        return null if text[i] != '{'
+        r = @readBalancedGroup text, i
+        content = r[0]
+        n = (parseInt nText.trim!, 10) or 1
+        subcols = @parseColspec specText
+        align = if subcols.length > 0 then subcols[0].align else 'c'
+        borderLeft = subcols.length > 0 and subcols[0].borderLeft
+        borderRight = subcols.length > 0 and subcols[subcols.length - 1].borderRight
+        { n: n, align: align, borderLeft: borderLeft, borderRight: borderRight, content: content }
 
     # Raw body -> array of { cells: [source], hline }. Splits on
     # \\ / \tabularnewline (rows) and & (cells) only at brace depth 0,
@@ -333,36 +369,79 @@ export class Generator
         endRow! if cur.trim!.length > 0 or cells.length > 0
         @finalizeTabularRows rows
 
-    # Pull a leading run of \hline off each row into a per-row flag. A
-    # row that is only a rule (all cells empty) becomes a bottom border
-    # on the previous row rather than an empty data row.
+    # Pull a leading run of rule tokens off each row into per-row flags. A
+    # row that is only rules (all cells empty) becomes a bottom border on
+    # the previous row rather than an empty data row; \cmidrule/\cline
+    # ranges instead mark specific cells of THIS row (the one they prefix).
     finalizeTabularRows: (rows) ->
         out = []
         for row in rows
-            hline = false
+            res = { hline: false, toprule: false, midrule: false, bottomrule: false, cmidrules: [] }
             if row.cells.length > 0
                 res = @stripLeadingRules row.cells[0]
-                hline = res.hline
                 row.cells[0] = res.rest
             allEmpty = row.cells.every (x) -> x.trim!.length == 0
             if allEmpty
-                out[out.length - 1].bottomHline = true if hline and out.length > 0
+                if out.length > 0
+                    prev = out[out.length - 1]
+                    prev.bottomHline = true if res.hline
+                    prev.bottomrule = true if res.bottomrule
             else
-                out.push { cells: row.cells, hline: hline }
+                out.push { cells: row.cells, hline: res.hline, toprule: res.toprule, midrule: res.midrule, bottomrule: res.bottomrule, cmidrules: res.cmidrules }
         out
 
+    # Matches, in any order, a leading run of \hline, \toprule, \midrule,
+    # \bottomrule, and \cmidrule[(trim)]{a-b} / \cline{a-b} (a single
+    # number means a-a). Unmatched text is left as the row's own content.
     stripLeadingRules: (text) ->
         s = text
-        found = false
+        hline = false
+        toprule = false
+        midrule = false
+        bottomrule = false
+        cmidrules = []
         loop
             m = s.match /^\s*\\hline\b/
-            break if not m
-            found := true
-            s := s.substring m.0.length
-        { hline: found, rest: s }
+            if m
+                hline := true
+                s := s.substring m.0.length
+                continue
+            m = s.match /^\s*\\toprule\b/
+            if m
+                toprule := true
+                s := s.substring m.0.length
+                continue
+            m = s.match /^\s*\\midrule\b/
+            if m
+                midrule := true
+                s := s.substring m.0.length
+                continue
+            m = s.match /^\s*\\bottomrule\b/
+            if m
+                bottomrule := true
+                s := s.substring m.0.length
+                continue
+            m = s.match /^\s*\\cmidrule\b(?:\s*\([^)]*\))?\s*\{\s*(\d+)\s*(?:-\s*(\d+))?\s*\}/
+            if m
+                start = parseInt m[1], 10
+                cmidrules.push { start: start, end: (if m[2] then parseInt m[2], 10 else start) }
+                s := s.substring m[0].length
+                continue
+            m = s.match /^\s*\\cline\b\s*\{\s*(\d+)\s*(?:-\s*(\d+))?\s*\}/
+            if m
+                start = parseInt m[1], 10
+                cmidrules.push { start: start, end: (if m[2] then parseInt m[2], 10 else start) }
+                s := s.substring m[0].length
+                continue
+            break
+        { hline: hline, toprule: toprule, midrule: midrule, bottomrule: bottomrule, cmidrules: cmidrules, rest: s }
 
     # Build <table class="latex-tabular"> from the raw spec + body. Each
-    # cell reparses through the tolerant fragment path.
+    # cell reparses through the tolerant fragment path. \multicolumn cells
+    # take their own colspan/alignment/borders from their own spec instead
+    # of the table's; cmidrule/cline ranges mark specific physical columns
+    # of the row they prefix (clamped by simple range comparison, never by
+    # array indexing, so an out-of-range a-b just matches nothing extra).
     renderTabular: (spec, body, name) ->
         cols = @parseColspec spec
         rows = @splitTabularBody body
@@ -373,28 +452,54 @@ export class Generator
             cls = []
             cls.push 'latex-hline' if row.hline
             cls.push 'latex-hline-bottom' if row.bottomHline
+            cls.push 'latex-toprule' if row.toprule
+            cls.push 'latex-midrule' if row.midrule
+            cls.push 'latex-bottomrule' if row.bottomrule
             tr.setAttribute 'class', cls.join ' ' if cls.length > 0
-            for cell, ci in row.cells
+            physCol = 0
+            for cell in row.cells
+                source = cell.trim!
+                mc = @parseMulticolumn source
+                if mc
+                    col = { align: mc.align, borderLeft: mc.borderLeft, borderRight: mc.borderRight }
+                    span = if mc.n > 0 then mc.n else 1
+                    cellSource = mc.content
+                else
+                    col = if physCol < cols.length then cols[physCol] else cols[cols.length - 1]
+                    span = 1
+                    cellSource = source
                 td = document.createElement 'td'
-                col = if ci < cols.length then cols[ci] else cols[cols.length - 1]
                 tdcls = [ 'latex-col-' + (col?.align or 'l') ]
                 tdcls.push 'latex-vline-left' if col?.borderLeft
                 tdcls.push 'latex-vline-right' if col?.borderRight
+                cellStart = physCol + 1
+                cellEnd = physCol + span
+                marked = row.cmidrules and row.cmidrules.some (r) -> cellStart <= r.end and cellEnd >= r.start
+                tdcls.push 'latex-cmidrule' if marked
                 td.setAttribute 'class', tdcls.join ' '
-                @appendCellContent td, cell.trim!
+                td.setAttribute 'colspan', "#{span}" if span > 1
+                @appendCellContent td, cellSource
                 tr.appendChild td
+                physCol := physCol + span
             table.appendChild tr
         table
 
     # Reparse a cell's source and append it to td, unwrapping a lone
-    # wrapping <p> so cell content stays inline.
+    # wrapping <p> - whether returned directly (createFragment's own
+    # single-node shortcut) or as the sole child of an actual fragment -
+    # so cell content stays inline instead of carrying block margins.
     appendCellContent: (td, source) !->
         return if not source
         node = @reparse source
         return if not node
-        if (node.nodeName ? '').toLowerCase! == 'p'
+        isP = (n) -> n? and (n.nodeName ? '').toLowerCase! == 'p'
+        if isP node
             while node.firstChild
                 td.appendChild node.firstChild
+        else if (node.nodeName ? '').toLowerCase! == '#document-fragment' and node.childNodes.length == 1 and isP node.firstChild
+            p = node.firstChild
+            while p.firstChild
+                td.appendChild p.firstChild
         else
             td.appendChild node
 

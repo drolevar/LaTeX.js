@@ -1074,7 +1074,8 @@ tabular_env =
     ( &{ return name === 'tabular*' || name === 'tabularx'; } _ raw_braces )?   // {width}, discarded
     _ spec:raw_braces
     body:$tabular_body
-    escape end _ begin_group $tabular_env_name end_group
+    escape end _ begin_group closeName:$tabular_env_name end_group
+    &{ return name === closeName; }               // \end name must match \begin
     { return g.renderTabular(spec, body, name); }
 
 // longest alternative first: PEG ordered choice is possessive, so

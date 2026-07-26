@@ -78,5 +78,96 @@ const doc = (inner) =>
   ok(!/&/.test(body.textContent || ''), 'g: no ampersand in tabular* text');
 }
 
+// (h) booktabs: \toprule/\midrule/\bottomrule -> per-row classes.
+{
+  const { body } = render(doc('\\begin{tabular}{ll}\\toprule a & b \\\\ \\midrule c & d \\\\ \\bottomrule\\end{tabular}'));
+  const rows = body.querySelectorAll('table.latex-tabular tr');
+  ok(rows.length === 2, 'h: two data rows survive three booktabs rules');
+  ok(rows.length === 2 && /latex-toprule/.test(rows[0].getAttribute('class') || ''),
+     'h: first row has latex-toprule');
+  ok(rows.length === 2 && /latex-midrule/.test(rows[1].getAttribute('class') || ''),
+     'h: second row has latex-midrule');
+  ok(rows.length === 2 && /latex-bottomrule/.test(rows[1].getAttribute('class') || ''),
+     'h: second row has latex-bottomrule (trailing rule -> previous row)');
+}
+
+// (i) \cmidrule(lr){2-3} marks exactly cells 2 and 3 of the FOLLOWING row.
+{
+  const { body } = render(doc('\\begin{tabular}{lll}a & b & c \\\\ \\cmidrule(lr){2-3} d & e & f\\end{tabular}'));
+  const rows = body.querySelectorAll('table.latex-tabular tr');
+  ok(rows.length === 2, 'i: two data rows');
+  const cells = rows.length === 2 ? rows[1].querySelectorAll('td') : [];
+  ok(cells.length === 3, 'i: second row has three cells');
+  ok(cells.length === 3 && !/latex-cmidrule/.test(cells[0].getAttribute('class') || ''),
+     'i: cell 1 of next row has no cmidrule class');
+  ok(cells.length === 3 && /latex-cmidrule/.test(cells[1].getAttribute('class') || ''),
+     'i: cell 2 of next row has cmidrule class');
+  ok(cells.length === 3 && /latex-cmidrule/.test(cells[2].getAttribute('class') || ''),
+     'i: cell 3 of next row has cmidrule class');
+}
+
+// (i2) \cline{a-b} behaves the same as \cmidrule without a trim spec.
+{
+  const { body } = render(doc('\\begin{tabular}{ll}a & b \\\\ \\cline{1-1} c & d\\end{tabular}'));
+  const rows = body.querySelectorAll('table.latex-tabular tr');
+  const cells = rows.length === 2 ? rows[1].querySelectorAll('td') : [];
+  ok(cells.length === 2 && /latex-cmidrule/.test(cells[0].getAttribute('class') || ''),
+     'i2: \\cline marks cell 1 of the next row');
+  ok(cells.length === 2 && !/latex-cmidrule/.test(cells[1].getAttribute('class') || ''),
+     'i2: \\cline does not mark cell 2');
+}
+
+// (j) \multicolumn{2}{c}{X}: colspan=2, centered, row cell count reflects the span.
+{
+  const { body } = render(doc('\\begin{tabular}{lll}\\multicolumn{2}{c}{X} & y \\\\ a & b & c\\end{tabular}'));
+  const rows = body.querySelectorAll('table.latex-tabular tr');
+  ok(rows.length === 2, 'j: two rows');
+  const firstRowCells = rows.length === 2 ? rows[0].querySelectorAll('td') : [];
+  ok(firstRowCells.length === 2, 'j: first row has two <td> (spanned + plain)');
+  ok(firstRowCells.length === 2 && firstRowCells[0].getAttribute('colspan') === '2',
+     'j: spanned cell has colspan=2');
+  ok(firstRowCells.length === 2 && /latex-col-c/.test(firstRowCells[0].getAttribute('class') || ''),
+     'j: spanned cell is centered per its own spec');
+}
+
+// (k) {|l|r|} vline classes on the outer edges (left of col1, right of col2).
+{
+  const { body } = render(doc('\\begin{tabular}{|l|r|}a & b\\end{tabular}'));
+  const cells = body.querySelectorAll('table.latex-tabular td');
+  ok(cells.length === 2, 'k: two cells');
+  ok(cells.length === 2 && /latex-vline-left/.test(cells[0].getAttribute('class') || ''),
+     'k: cell 1 has a left vline');
+  ok(cells.length === 2 && /latex-vline-right/.test(cells[0].getAttribute('class') || ''),
+     'k: cell 1 has a right vline (inner |)');
+  ok(cells.length === 2 && /latex-vline-right/.test(cells[1].getAttribute('class') || ''),
+     'k: cell 2 has a right vline (trailing |)');
+}
+
+// (l) |*{2}{c}: the vline belongs only to the first column, not each repetition.
+{
+  const { body } = render(doc('\\begin{tabular}{|*{2}{c}}a & b\\end{tabular}'));
+  const cells = body.querySelectorAll('table.latex-tabular td');
+  ok(cells.length === 2, 'l: two cells');
+  ok(cells.length === 2 && /latex-vline-left/.test(cells[0].getAttribute('class') || ''),
+     'l: cell 1 has the left vline');
+  ok(cells.length === 2 && !/latex-vline-left/.test(cells[1].getAttribute('class') || ''),
+     'l: cell 2 does NOT have a left vline (regression for the *{n}{sub} clone bug)');
+}
+
+// (m) plain-text cell content has no nested <p> (no injected block margins).
+{
+  const { body } = render(doc('\\begin{tabular}{l}a\\end{tabular}'));
+  const td = body.querySelector('table.latex-tabular td');
+  ok(td !== null && td.querySelector('p') === null,
+     'm: a plain-text cell has no nested <p>');
+}
+
+// (n) mismatched \begin{tabular}...\end{tabular*} does not produce a table.
+{
+  const { body } = render(doc('\\begin{tabular}{l} a \\end{tabular*}'));
+  ok(body.querySelector('table.latex-tabular') === null,
+     'n: mismatched begin/end names does not render a table');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

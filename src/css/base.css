@@ -818,6 +818,15 @@ dd {
 .latex-vline-left { border-left: 1px solid currentColor; }
 .latex-vline-right { border-right: 1px solid currentColor; }
 
+/* booktabs: top/bottom rules a touch heavier than a plain hline, midrule
+   the same weight as hline - kept subtle rather than full booktabs weights */
+.latex-toprule td { border-top: 1.5px solid currentColor; }
+.latex-midrule td { border-top: 1px solid currentColor; }
+.latex-bottomrule td { border-bottom: 1.5px solid currentColor; }
+
+/* \cmidrule / \cline: a rule on specific cells only, not the whole row */
+.latex-cmidrule { border-top: 1px solid currentColor; }
+
 
 
 /* the TeX and LaTeX logos */
