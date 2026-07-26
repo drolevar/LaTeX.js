@@ -854,11 +854,15 @@ begin_env "\\begin" =
     // escape already eaten by macro rule
     begin
     begin_group
-        id:(id:identifier { g.begin(id); return id; })
-        s:nextArgStar?
+        id:identifier _ star:"*"?
     end_group
     {
-        return { id, end: id + (s ? "*" : "") };
+        // starred envs (table*, figure*, ...) are registered under
+        // their own literal name, e.g. "table*" - symmetric with
+        // end_env, which already matches the trailing * this way.
+        var full = id + (star ? "*" : "");
+        g.begin(full);
+        return { id: full, end: full };
     }
 
 end_env "\\end" =

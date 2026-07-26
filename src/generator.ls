@@ -164,6 +164,18 @@ export class Generator
         el.setAttribute "data-kind", kind
         el
 
+    # Marker for an unknown environment's \begin:
+    # <span class="latex-unsupported latex-env-chip" data-kind="unknown-env"
+    # title="unknown environment">[name]</span>. Parallels unsupportedNode
+    # (own reportDegradation call), but bracketed rather than backslashed
+    # since an environment name, unlike a macro, isn't itself an escape.
+    envChipNode: (name) ->
+        @reportDegradation \unknown-env, name
+        el = @create @inline, (@createText "[" + name + "]"), "latex-unsupported latex-env-chip"
+        el.setAttribute "title", "unknown environment"
+        el.setAttribute "data-kind", "unknown-env"
+        el
+
 
     ### tabular
 
@@ -789,11 +801,19 @@ export class Generator
     begin: (env_id) !->
         if not @hasMacro env_id
             if @_options?.tolerant
-                # Register no-op begin + end so the env body
-                # parses + renders, just without semantics. Console
-                # log so the integrator can see what was tolerated.
+                # Register a chip-emitting begin + no-op end so the env
+                # body still parses + renders. The begin closure is
+                # bound (~>) to this generator, not @_macros (macro()
+                # invokes handlers via .apply @_macros, ...), and reports
+                # the degradation on every call - i.e. once per
+                # occurrence, same as unknownMacro - not just once at
+                # registration. It returns [chip, emptyFragment] rather
+                # than [chip] alone: h_environment/environment splice
+                # the env body INTO the last returned node when that
+                # node is an element, and the chip must stay standalone
+                # with the body flowing after it as plain siblings.
                 console.warn "tolerant: unknown environment '#{env_id}'"
-                @_macros[env_id]          = -> []
+                @_macros[env_id]          = ~> [ @envChipNode(env_id), @createFragment! ]
                 @_macros["end" + env_id]  = -> []
             else
                 error "unknown environment: #{env_id}"

@@ -834,6 +834,19 @@ dd {
 
 
 
+/* unknown-environment marker chip: no base rule for .latex-unsupported
+   exists in this fork (mdview styles that class on its own), so give
+   the chip a minimal muted look here rather than depending on one */
+.latex-env-chip {
+    font-size: 0.85em;
+    opacity: 0.65;
+    border: 1px dashed currentColor;
+    border-radius: 0.2em;
+    padding: 0 0.3em;
+}
+
+
+
 /* the TeX and LaTeX logos */
 
 span.tex,

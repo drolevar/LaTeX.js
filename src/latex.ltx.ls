@@ -396,6 +396,18 @@ export class LaTeX
     \table              :->  @g.beginFloat \table ; [ @g.create @g.block, null, "table" ]
     \endtable           :!-> @g.endFloat!
 
+    # starred variants (two-column full-width in real LaTeX, meaningless
+    # here) - typed as the plain float so \caption/\cref number/name them
+    # the same ("Table N", not "Table* N").
+    args
+     ..\figure* =       \
+     ..\table* =        <[ V o? ]>
+
+    \figure*            :->  @g.beginFloat \figure ; [ @g.create @g.block, null, "figure" ]
+    \endfigure*         :!-> @g.endFloat!
+    \table*             :->  @g.beginFloat \table ; [ @g.create @g.block, null, "table" ]
+    \endtable*          :!-> @g.endFloat!
+
     args
      ..\caption =       <[ V o? g ]>
     \caption            : (short, txt) -> [ @g.caption txt ]
@@ -794,19 +806,25 @@ export class LaTeX
      ..\adjustbox =     <[ H rg g ]>
     \adjustbox          : (keys, content) -> [ content ]
 
-    # wrapfig: wrapfigure/wraptable [lines]{placement}{width} -> a width box
-    # (no float; placement ignored).
+    # wrapfig: wrapfigure/wraptable [lines]{placement}{width} -> a width
+    # box, typed under the matching float counter so \caption numbers it
+    # (Figure/Table N) like the plain float - placement ignored (no real
+    # text wrap without page layout).
     args
      ..\wrapfigure =    <[ V o? rg rg ]>
      ..\wraptable =     <[ V o? rg rg ]>
     \wrapfigure         : (lines, place, width) ->
+        @g.beginFloat \figure
         box = @g.create @g.block, null, "wrapfigure"
         box.setAttribute "style", "width:#{@g.cssDimen(width) or 'auto'};"
         [ box ]
+    \endwrapfigure      :!-> @g.endFloat!
     \wraptable          : (lines, place, width) ->
+        @g.beginFloat \table
         box = @g.create @g.block, null, "wraptable"
         box.setAttribute "style", "width:#{@g.cssDimen(width) or 'auto'};"
         [ box ]
+    \endwraptable       :!-> @g.endFloat!
 
 
 
