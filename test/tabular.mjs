@@ -235,6 +235,10 @@ const doc = (inner) =>
 }
 
 // (s) a cell containing a stray, unmatched } (no matching { in the cell)
+// NOTE: a stray \end{...} cannot reproduce over-closing here - without
+// a matching begin it never reaches g.end() (the tolerant fallback
+// consumes it char-by-char with zero group side effects); the bare }
+// is the real reproducer. Do not "restore" an \end-based fixture.
 // hits the tolerant grammar's "close an ambient open group" fallback,
 // which operates on whatever level is CURRENTLY current - i.e. the
 // ENCLOSING tabular environment's own level, not anything scoped to
