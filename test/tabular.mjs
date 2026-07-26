@@ -64,5 +64,19 @@ const doc = (inner) =>
   ok(cells.length === 1, 'e: brace-nested ampersand does not split into two cells');
 }
 
+// (f) tabularx: a leading {width} is discarded, X columns still render.
+{
+  const { body } = render(doc('\\begin{tabularx}{\\textwidth}{lX} a & b \\\\ \\end{tabularx}'));
+  ok(body.querySelector('table.latex-tabular') !== null, 'f: tabularx renders a table');
+  ok(!/&/.test(body.textContent || ''), 'f: no ampersand in tabularx text');
+}
+
+// (g) tabular*: same, with an explicit width group.
+{
+  const { body } = render(doc('\\begin{tabular*}{5cm}{ll} a & b \\\\ \\end{tabular*}'));
+  ok(body.querySelector('table.latex-tabular') !== null, 'g: tabular* renders a table');
+  ok(!/&/.test(body.textContent || ''), 'g: no ampersand in tabular* text');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

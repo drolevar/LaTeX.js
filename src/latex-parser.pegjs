@@ -1077,9 +1077,12 @@ tabular_env =
     escape end _ begin_group $tabular_env_name end_group
     { return g.renderTabular(spec, body, name); }
 
+// longest alternative first: PEG ordered choice is possessive, so
+// "tabular" must not shadow "tabularx" (the trailing x would be left
+// for end_group and the whole rule would backtrack).
 tabular_env_name "tabular environment name" =
-    "tabular" "*"?
-    / "tabularx"
+    "tabularx"
+    / "tabular" "*"?
 
 // raw balanced-brace group: returns the inner text (nested braces kept).
 raw_braces =

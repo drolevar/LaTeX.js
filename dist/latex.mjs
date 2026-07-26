@@ -1289,10 +1289,10 @@ var latexParser_pegjs = /*
         peg$c338 = function(name) { return name === 'tabular*' || name === 'tabularx'; },
         peg$c339 = function(name, spec, body) { return g.renderTabular(spec, body, name); },
         peg$c340 = peg$otherExpectation("tabular environment name"),
-        peg$c341 = "tabular",
-        peg$c342 = peg$literalExpectation("tabular", false),
-        peg$c343 = "tabularx",
-        peg$c344 = peg$literalExpectation("tabularx", false),
+        peg$c341 = "tabularx",
+        peg$c342 = peg$literalExpectation("tabularx", false),
+        peg$c343 = "tabular",
+        peg$c344 = peg$literalExpectation("tabular", false),
         peg$c345 = /^[^{}]/,
         peg$c346 = peg$classExpectation(["{", "}"], true, false),
         peg$c347 = peg$otherExpectation("math environment name"),
@@ -13368,43 +13368,43 @@ var latexParser_pegjs = /*
       var s0, s1, s2;
 
       peg$silentFails++;
-      s0 = peg$currPos;
-      if (input.substr(peg$currPos, 7) === peg$c341) {
-        s1 = peg$c341;
-        peg$currPos += 7;
+      if (input.substr(peg$currPos, 8) === peg$c341) {
+        s0 = peg$c341;
+        peg$currPos += 8;
       } else {
-        s1 = peg$FAILED;
+        s0 = peg$FAILED;
         if (peg$silentFails === 0) { peg$fail(peg$c342); }
       }
-      if (s1 !== peg$FAILED) {
-        if (input.charCodeAt(peg$currPos) === 42) {
-          s2 = peg$c127;
-          peg$currPos++;
+      if (s0 === peg$FAILED) {
+        s0 = peg$currPos;
+        if (input.substr(peg$currPos, 7) === peg$c343) {
+          s1 = peg$c343;
+          peg$currPos += 7;
         } else {
-          s2 = peg$FAILED;
-          if (peg$silentFails === 0) { peg$fail(peg$c128); }
+          s1 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$c344); }
         }
-        if (s2 === peg$FAILED) {
-          s2 = null;
-        }
-        if (s2 !== peg$FAILED) {
-          s1 = [s1, s2];
-          s0 = s1;
+        if (s1 !== peg$FAILED) {
+          if (input.charCodeAt(peg$currPos) === 42) {
+            s2 = peg$c127;
+            peg$currPos++;
+          } else {
+            s2 = peg$FAILED;
+            if (peg$silentFails === 0) { peg$fail(peg$c128); }
+          }
+          if (s2 === peg$FAILED) {
+            s2 = null;
+          }
+          if (s2 !== peg$FAILED) {
+            s1 = [s1, s2];
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;
-        }
-      } else {
-        peg$currPos = s0;
-        s0 = peg$FAILED;
-      }
-      if (s0 === peg$FAILED) {
-        if (input.substr(peg$currPos, 8) === peg$c343) {
-          s0 = peg$c343;
-          peg$currPos += 8;
-        } else {
-          s0 = peg$FAILED;
-          if (peg$silentFails === 0) { peg$fail(peg$c344); }
         }
       }
       peg$silentFails--;
