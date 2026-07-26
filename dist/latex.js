@@ -21206,7 +21206,7 @@
 	    this._errorFn = e;
 	  };
 	  Generator.prototype.reparse = function(content){
-	    var savedLoc, savedErr, savedStackLen, savedGroupsLen, nodes, e, leaked, groupsToClose, i$, stackToClose;
+	    var savedLoc, savedErr, savedStackLen, savedGroupsLen, nodes, e, leaked;
 	    if (!content) {
 	      return this.createFragment();
 	    }
@@ -21227,14 +21227,24 @@
 	        this.setErrorFn(savedErr);
 	      }
 	      leaked = false;
-	      groupsToClose = this._groups.length - savedGroupsLen;
-	      for (i$ = 1; i$ <= groupsToClose; ++i$) {
-	        this.endBalanced();
+	      while (this._groups.length > savedGroupsLen || this._stack.length > savedStackLen) {
+	        if (this._groups.length > savedGroupsLen) {
+	          if (this.isBalanced()) {
+	            this.endBalanced();
+	          } else {
+	            this.exitGroup();
+	          }
+	        } else {
+	          this.exitGroup();
+	        }
 	        leaked = true;
 	      }
-	      stackToClose = this._stack.length - savedStackLen;
-	      for (i$ = 1; i$ <= stackToClose; ++i$) {
-	        this.exitGroup();
+	      while (this._groups.length < savedGroupsLen) {
+	        this.startBalanced();
+	        leaked = true;
+	      }
+	      while (this._stack.length < savedStackLen) {
+	        this.enterGroup();
 	        leaked = true;
 	      }
 	      if (leaked) {

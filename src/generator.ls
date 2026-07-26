@@ -133,20 +133,43 @@ export class Generator
         finally
             @location = savedLoc if savedLoc
             @setErrorFn savedErr if savedErr
-            # An unbalanced { in the fragment (e.g. a table cell that lost
-            # its closing } to cell splitting) leaves enterGroup un-exited,
-            # which would otherwise leak font/attribute state into every
-            # following sibling. Unwind back to the pre-reparse depth using
-            # the generator's own exit path, innermost level first.
             leaked = false
-            groupsToClose = @_groups.length - savedGroupsLen
-            for i from 1 to groupsToClose
-                @endBalanced!
+
+            # Under-closing: an unclosed { or \begin left in the fragment
+            # (its closer lost to cell splitting) leaves enterGroup/
+            # startBalanced un-exited. Unwind exactly like end() does -
+            # exitGroup (drain the innermost level's own opens) THEN
+            # endBalanced (pop that now-balanced level) - but loop per
+            # level instead of assuming one exitGroup suffices, since a
+            # leaked env can itself contain a further unclosed { that
+            # pushed extra frames onto the same level.
+            while @_groups.length > savedGroupsLen or @_stack.length > savedStackLen
+                if @_groups.length > savedGroupsLen
+                    if @isBalanced!
+                        @endBalanced!
+                    else
+                        @exitGroup!
+                else
+                    # no leaked level left, but a plain { opened directly
+                    # at the snapshot's own level is still unclosed
+                    @exitGroup!
                 leaked = true
-            stackToClose = @_stack.length - savedStackLen
-            for i from 1 to stackToClose
-                @exitGroup!
+
+            # Over-closing: a stray \end in the fragment (no matching
+            # \begin in this fragment) runs end()'s unconditional
+            # endBalanced even when exitGroup underflowed - popping a
+            # level/frame that belongs to the ENCLOSING context. Repair
+            # by padding back to the snapshot shape with the generator's
+            # own start/enter calls; the popped frame's content is gone,
+            # but the structural invariant the rest of the document
+            # depends on is restored.
+            while @_groups.length < savedGroupsLen
+                @startBalanced!
                 leaked = true
+            while @_stack.length < savedStackLen
+                @enterGroup!
+                leaked = true
+
             @reportDegradation \unbalanced-fragment, null, "unbalanced group in reparsed fragment" if leaked
         nodes
 

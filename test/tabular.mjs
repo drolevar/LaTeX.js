@@ -213,5 +213,49 @@ const doc = (inner) =>
   ok(unbalanced.length === 1, 'q: exactly one unbalanced-fragment degradation entry');
 }
 
+// (r) a cell containing an unclosed \begin{itemize} that ALSO has its own
+// unclosed { inside (\item {\bf x, both closers lost to cell splitting)
+// leaks two extra frames onto ONE leaked level. A recovery that unwinds
+// in the wrong order (endBalanced before the level's own frames are
+// drained) pops the level while a stale frame is still on the stack -
+// this must not happen: following text must not leak the .bf attribute,
+// and exactly one unbalanced-fragment entry is reported.
+{
+  const { body, g } = render(
+    doc('\\begin{tabular}{l}\\begin{itemize} \\item {\\bf x\\end{tabular}\nafter {\\bf y} z'));
+  const table = body.querySelector('table.latex-tabular');
+  ok(table !== null, 'r: table still renders despite the unclosed cell env+brace');
+  const bfTexts = Array.from(body.querySelectorAll('.bf')).map((n) => n.textContent).join(' ');
+  ok(!/after/.test(bfTexts) && !/\bz\b/.test(bfTexts),
+     'r: "after"/"z" do not leak into a .bf-classed element');
+  ok(/\by\b/.test(bfTexts),
+     'r: a later {\\bf y} still bolds y (stack sanity after recovery)');
+  const unbalanced = g.degradations().filter((d) => d.kind === 'unbalanced-fragment');
+  ok(unbalanced.length === 1, 'r: exactly one unbalanced-fragment degradation entry');
+}
+
+// (s) a cell containing a stray, unmatched } (no matching { in the cell)
+// hits the tolerant grammar's "close an ambient open group" fallback,
+// which operates on whatever level is CURRENTLY current - i.e. the
+// ENCLOSING tabular environment's own level, not anything scoped to
+// this cell. Left unrepaired this pops a frame/level that belongs to
+// the table itself. Content around the stray } must survive, exactly
+// one unbalanced-fragment entry is reported, and the enclosing table's
+// own accounting must stay intact enough that a later {\bf y} still
+// bolds only y (proof the outer frame wasn't corrupted).
+{
+  const { body, g } = render(
+    doc('\\begin{tabular}{l}a } b\\end{tabular}\nafter {\\bf y} z'));
+  const table = body.querySelector('table.latex-tabular');
+  ok(table !== null, 's: table still renders despite the stray } in the cell');
+  const text = body.textContent || '';
+  ok(/a/.test(text) && /b/.test(text), 's: cell text around the stray } survives');
+  const unbalanced = g.degradations().filter((d) => d.kind === 'unbalanced-fragment');
+  ok(unbalanced.length === 1, 's: exactly one unbalanced-fragment degradation entry');
+  const bfTexts = Array.from(body.querySelectorAll('.bf')).map((n) => n.textContent).join(' ');
+  ok(/\by\b/.test(bfTexts) && !/\bz\b/.test(bfTexts) && !/after/.test(bfTexts),
+     's: a later {\\bf y} bolds only y - the enclosing table context was repaired, not left corrupt');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
