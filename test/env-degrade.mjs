@@ -72,5 +72,30 @@ const render = (tex) => {
      'two unknown envs: both names recorded');
 }
 
+// (6) the SAME unknown env twice in one document -> two chips, two
+// degradations() entries (not deduped by name) - unlike (5), reusing
+// one name here is what actually locks per-occurrence reporting: a
+// report-once-per-unique-name implementation would still pass (5).
+// console.warn should fire only once (registration is per-unique-name,
+// even though the reported degradation is per-occurrence).
+{
+  const originalWarn = console.warn;
+  let warnCalls = 0;
+  console.warn = (...a) => { warnCalls++; originalWarn.apply(console, a); };
+  let body, g;
+  try {
+    ({ body, g } = render(doc(
+      '\\begin{promptbox}A\\end{promptbox}\\begin{promptbox}B\\end{promptbox}')));
+  } finally {
+    console.warn = originalWarn;
+  }
+  const chips = body.querySelectorAll('.latex-env-chip');
+  ok(chips.length === 2, 'repeated unknown env: two chips');
+  const hits = g.degradations().filter(
+    (d) => d.kind === 'unknown-env' && d.name === 'promptbox');
+  ok(hits.length === 2, 'repeated unknown env: two unknown-env/promptbox degradations');
+  ok(warnCalls === 1, 'repeated unknown env: console.warn fires only once (registration, not per occurrence)');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
