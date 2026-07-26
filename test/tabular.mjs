@@ -198,5 +198,20 @@ const doc = (inner) =>
      'p: cell 2 of the following row has the cmidrule class');
 }
 
+// (q) an unbalanced { in a cell (its } lost to cell splitting) must not
+// leak group/font state past the table - and must be reported exactly
+// once via degradations(), not silently.
+{
+  const { body, g } = render(doc('\\begin{tabular}{ll}{\\bf a & b\\end{tabular}\nafter'));
+  const table = body.querySelector('table.latex-tabular');
+  ok(table !== null, 'q: table still renders despite the unbalanced cell');
+  ok(!/after/.test(
+       Array.from(body.querySelectorAll('.bf')).map((n) => n.textContent).join(' ')
+     ),
+     'q: "after" is not inside a .bf-classed element');
+  const unbalanced = g.degradations().filter((d) => d.kind === 'unbalanced-fragment');
+  ok(unbalanced.length === 1, 'q: exactly one unbalanced-fragment degradation entry');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

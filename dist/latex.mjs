@@ -21202,12 +21202,14 @@ export$$1 = (function(){
     this._errorFn = e;
   };
   Generator.prototype.reparse = function(content){
-    var savedLoc, savedErr, nodes, e;
+    var savedLoc, savedErr, savedStackLen, savedGroupsLen, nodes, e, leaked, groupsToClose, i$, stackToClose;
     if (!content) {
       return this.createFragment();
     }
     savedLoc = this.location;
     savedErr = this._errorFn;
+    savedStackLen = this._stack.length;
+    savedGroupsLen = this._groups.length;
     try {
       nodes = this._reparse(content);
     } catch (e$) {
@@ -21219,6 +21221,20 @@ export$$1 = (function(){
       }
       if (savedErr) {
         this.setErrorFn(savedErr);
+      }
+      leaked = false;
+      groupsToClose = this._groups.length - savedGroupsLen;
+      for (i$ = 1; i$ <= groupsToClose; ++i$) {
+        this.endBalanced();
+        leaked = true;
+      }
+      stackToClose = this._stack.length - savedStackLen;
+      for (i$ = 1; i$ <= stackToClose; ++i$) {
+        this.exitGroup();
+        leaked = true;
+      }
+      if (leaked) {
+        this.reportDegradation('unbalanced-fragment', null, "unbalanced group in reparsed fragment");
       }
     }
     return nodes;
@@ -21251,7 +21267,7 @@ export$$1 = (function(){
   };
   Generator.prototype.envChipNode = function(name){
     var el;
-    this.reportDegradation('unknown-env', name);
+    this.reportDegradation('unknown-env', name, "unknown environment");
     el = this.create(this.inline, this.createText("[" + name + "]"), "latex-unsupported latex-env-chip");
     el.setAttribute("title", "unknown environment");
     el.setAttribute("data-kind", "unknown-env");

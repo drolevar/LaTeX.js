@@ -124,6 +124,8 @@ export class Generator
         return @createFragment! if not content
         savedLoc = @location
         savedErr = @_errorFn
+        savedStackLen = @_stack.length
+        savedGroupsLen = @_groups.length
         try
             nodes = @_reparse content
         catch e
@@ -131,6 +133,21 @@ export class Generator
         finally
             @location = savedLoc if savedLoc
             @setErrorFn savedErr if savedErr
+            # An unbalanced { in the fragment (e.g. a table cell that lost
+            # its closing } to cell splitting) leaves enterGroup un-exited,
+            # which would otherwise leak font/attribute state into every
+            # following sibling. Unwind back to the pre-reparse depth using
+            # the generator's own exit path, innermost level first.
+            leaked = false
+            groupsToClose = @_groups.length - savedGroupsLen
+            for i from 1 to groupsToClose
+                @endBalanced!
+                leaked = true
+            stackToClose = @_stack.length - savedStackLen
+            for i from 1 to stackToClose
+                @exitGroup!
+                leaked = true
+            @reportDegradation \unbalanced-fragment, null, "unbalanced group in reparsed fragment" if leaked
         nodes
 
     # Tolerant-mode fallback for the PEG grammar's unknown_macro
@@ -170,7 +187,7 @@ export class Generator
     # (own reportDegradation call), but bracketed rather than backslashed
     # since an environment name, unlike a macro, isn't itself an escape.
     envChipNode: (name) ->
-        @reportDegradation \unknown-env, name
+        @reportDegradation \unknown-env, name, "unknown environment"
         el = @create @inline, (@createText "[" + name + "]"), "latex-unsupported latex-env-chip"
         el.setAttribute "title", "unknown environment"
         el.setAttribute "data-kind", "unknown-env"

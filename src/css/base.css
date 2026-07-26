@@ -812,22 +812,26 @@ dd {
 .latex-col-r { text-align: right; }
 
 /* rules and vertical lines derive from the text colour, so the dark
-   theme inverts them without an override */
-.latex-hline td { border-top: 1px solid currentColor; }
-.latex-hline-bottom td { border-bottom: 1px solid currentColor; }
+   theme inverts them without an override. Child combinator (not
+   descendant) so a nested tabular inside a rule-marked row doesn't
+   inherit the border on its own inner cells - a table's <tr> is always
+   the direct parent of its <td>s (browsers insert tbody between table
+   and tr, never between tr and td). */
+.latex-hline > td { border-top: 1px solid currentColor; }
+.latex-hline-bottom > td { border-bottom: 1px solid currentColor; }
 .latex-vline-left { border-left: 1px solid currentColor; }
 .latex-vline-right { border-right: 1px solid currentColor; }
 
 /* booktabs: top/bottom rules a touch heavier than a plain hline, midrule
    the same weight as hline - kept subtle rather than full booktabs weights */
-.latex-toprule td { border-top: 1.5px solid currentColor; }
-.latex-midrule td { border-top: 1px solid currentColor; }
-.latex-bottomrule td { border-bottom: 1.5px solid currentColor; }
+.latex-toprule > td { border-top: 1.5px solid currentColor; }
+.latex-midrule > td { border-top: 1px solid currentColor; }
+.latex-bottomrule > td { border-bottom: 1.5px solid currentColor; }
 
 /* an isolated \toprule/\midrule (bounded by \\ on both sides) attaches to
    the row above it as a bottom border, same weight as the top-side class */
-.latex-toprule-bottom td { border-bottom: 1.5px solid currentColor; }
-.latex-midrule-bottom td { border-bottom: 1px solid currentColor; }
+.latex-toprule-bottom > td { border-bottom: 1.5px solid currentColor; }
+.latex-midrule-bottom > td { border-bottom: 1px solid currentColor; }
 
 /* \cmidrule / \cline: a rule on specific cells only, not the whole row */
 .latex-cmidrule { border-top: 1px solid currentColor; }
