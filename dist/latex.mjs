@@ -21418,8 +21418,9 @@ export$$1 = (function(){
     return this.finalizeTabularRows(rows);
   };
   Generator.prototype.finalizeTabularRows = function(rows){
-    var out, i$, len$, row, res, allEmpty, prev;
+    var out, pendingCmidrules, i$, len$, row, res, allEmpty, prev, cmidrules;
     out = [];
+    pendingCmidrules = [];
     for (i$ = 0, len$ = rows.length; i$ < len$; ++i$) {
       row = rows[i$];
       res = {
@@ -21435,6 +21436,7 @@ export$$1 = (function(){
       }
       allEmpty = row.cells.every(fn$);
       if (allEmpty) {
+        pendingCmidrules = pendingCmidrules.concat(res.cmidrules);
         if (out.length > 0) {
           prev = out[out.length - 1];
           if (res.hline) {
@@ -21443,15 +21445,23 @@ export$$1 = (function(){
           if (res.bottomrule) {
             prev.bottomrule = true;
           }
+          if (res.midrule) {
+            prev.bottomMidrule = true;
+          }
+          if (res.toprule) {
+            prev.bottomToprule = true;
+          }
         }
       } else {
+        cmidrules = pendingCmidrules.concat(res.cmidrules);
+        pendingCmidrules = [];
         out.push({
           cells: row.cells,
           hline: res.hline,
           toprule: res.toprule,
           midrule: res.midrule,
           bottomrule: res.bottomrule,
-          cmidrules: res.cmidrules
+          cmidrules: cmidrules
         });
       }
     }
@@ -21548,6 +21558,12 @@ export$$1 = (function(){
       }
       if (row.bottomrule) {
         cls.push('latex-bottomrule');
+      }
+      if (row.bottomToprule) {
+        cls.push('latex-toprule-bottom');
+      }
+      if (row.bottomMidrule) {
+        cls.push('latex-midrule-bottom');
       }
       if (cls.length > 0) {
         tr.setAttribute('class', cls.join(' '));

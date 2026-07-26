@@ -370,11 +370,17 @@ export class Generator
         @finalizeTabularRows rows
 
     # Pull a leading run of rule tokens off each row into per-row flags. A
-    # row that is only rules (all cells empty) becomes a bottom border on
-    # the previous row rather than an empty data row; \cmidrule/\cline
-    # ranges instead mark specific cells of THIS row (the one they prefix).
+    # row that is only rules (all cells empty) - whether it's an isolated
+    # rule bounded by \\ on both sides, or a trailing rule right before
+    # \end - is not an empty data row: hline/toprule/midrule/bottomrule
+    # attach as a bottom border on the PREVIOUS row (mirroring the row
+    # they visually sit under), while cmidrule/cline ranges carry FORWARD
+    # to the NEXT data row's cells (they mark what follows, per \cmidrule's
+    # own semantics). A rule with no row on the relevant side is inert,
+    # same as an unmatched leading/trailing rule always was.
     finalizeTabularRows: (rows) ->
         out = []
+        pendingCmidrules = []
         for row in rows
             res = { hline: false, toprule: false, midrule: false, bottomrule: false, cmidrules: [] }
             if row.cells.length > 0
@@ -382,12 +388,17 @@ export class Generator
                 row.cells[0] = res.rest
             allEmpty = row.cells.every (x) -> x.trim!.length == 0
             if allEmpty
+                pendingCmidrules = pendingCmidrules.concat res.cmidrules
                 if out.length > 0
                     prev = out[out.length - 1]
                     prev.bottomHline = true if res.hline
                     prev.bottomrule = true if res.bottomrule
+                    prev.bottomMidrule = true if res.midrule
+                    prev.bottomToprule = true if res.toprule
             else
-                out.push { cells: row.cells, hline: res.hline, toprule: res.toprule, midrule: res.midrule, bottomrule: res.bottomrule, cmidrules: res.cmidrules }
+                cmidrules = pendingCmidrules.concat res.cmidrules
+                pendingCmidrules := []
+                out.push { cells: row.cells, hline: res.hline, toprule: res.toprule, midrule: res.midrule, bottomrule: res.bottomrule, cmidrules: cmidrules }
         out
 
     # Matches, in any order, a leading run of \hline, \toprule, \midrule,
@@ -455,6 +466,8 @@ export class Generator
             cls.push 'latex-toprule' if row.toprule
             cls.push 'latex-midrule' if row.midrule
             cls.push 'latex-bottomrule' if row.bottomrule
+            cls.push 'latex-toprule-bottom' if row.bottomToprule
+            cls.push 'latex-midrule-bottom' if row.bottomMidrule
             tr.setAttribute 'class', cls.join ' ' if cls.length > 0
             physCol = 0
             for cell in row.cells

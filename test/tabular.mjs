@@ -169,5 +169,34 @@ const doc = (inner) =>
      'n: mismatched begin/end names does not render a table');
 }
 
+// (o) an isolated \midrule (bounded by \\ on both sides) must not vanish:
+// it attaches as a bottom border on the row before it.
+{
+  const { body } = render(doc('\\begin{tabular}{ll}a & b \\\\ \\midrule \\\\ c & d\\end{tabular}'));
+  const rows = body.querySelectorAll('table.latex-tabular tr');
+  ok(rows.length === 2, 'o: two data rows survive the isolated midrule');
+  const anyMidruleClass = Array.from(rows).some((r) => /midrule/.test(r.getAttribute('class') || ''));
+  ok(anyMidruleClass, 'o: the isolated midrule leaves a class on SOME row (regression: it used to vanish)');
+  ok(rows.length === 2 && /latex-midrule-bottom/.test(rows[0].getAttribute('class') || ''),
+     'o: this fix attaches it as latex-midrule-bottom on the row before it');
+}
+
+// (p) an isolated \cmidrule(lr){2-2} row between two data rows marks cell 2
+// of the FOLLOWING data row (not the row before it).
+{
+  const { body } = render(doc('\\begin{tabular}{ll}a & b \\\\ \\cmidrule(lr){2-2} \\\\ c & d\\end{tabular}'));
+  const rows = body.querySelectorAll('table.latex-tabular tr');
+  ok(rows.length === 2, 'p: two data rows survive the isolated cmidrule');
+  const firstCells = rows.length === 2 ? rows[0].querySelectorAll('td') : [];
+  const nextCells = rows.length === 2 ? rows[1].querySelectorAll('td') : [];
+  ok(firstCells.length === 2 && !/latex-cmidrule/.test(firstCells[0].getAttribute('class') || '') &&
+     !/latex-cmidrule/.test(firstCells[1].getAttribute('class') || ''),
+     'p: the row before the isolated cmidrule is untouched');
+  ok(nextCells.length === 2 && !/latex-cmidrule/.test(nextCells[0].getAttribute('class') || ''),
+     'p: cell 1 of the following row has no cmidrule class');
+  ok(nextCells.length === 2 && /latex-cmidrule/.test(nextCells[1].getAttribute('class') || ''),
+     'p: cell 2 of the following row has the cmidrule class');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

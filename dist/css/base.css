@@ -824,6 +824,11 @@ dd {
 .latex-midrule td { border-top: 1px solid currentColor; }
 .latex-bottomrule td { border-bottom: 1.5px solid currentColor; }
 
+/* an isolated \toprule/\midrule (bounded by \\ on both sides) attaches to
+   the row above it as a bottom border, same weight as the top-side class */
+.latex-toprule-bottom td { border-bottom: 1.5px solid currentColor; }
+.latex-midrule-bottom td { border-bottom: 1px solid currentColor; }
+
 /* \cmidrule / \cline: a rule on specific cells only, not the whole row */
 .latex-cmidrule { border-top: 1px solid currentColor; }
 
