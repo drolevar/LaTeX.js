@@ -87,5 +87,105 @@ const render = (tex) => {
   ok(!/latex-unsupported/.test(html), 'adjustbox/wrapfigure are not unsupported');
   ok(/ABC/.test(html) && /XYZ/.test(html), 'adjustbox/wrapfigure content renders');
 }
+// (9) \hypersetup is a silent core no-op: no text leak, no degradation entry
+{
+  const { html, g } = render(
+    '\\documentclass{article}\\begin{document}'
+    + '\\hypersetup{colorlinks=true,pdftitle={My Doc}}A\\end{document}');
+  ok(!/latex-unsupported/.test(html), 'hypersetup does not render as unsupported');
+  ok(!/colorlinks|pdftitle/.test(html), 'hypersetup options do not leak as body text');
+  ok(g.degradations().every((d) => d.name !== 'hypersetup'), 'hypersetup logs no degradation');
+  ok(/A/.test(html), 'text following hypersetup still renders');
+}
+// (10) \bf / \it / \rm are declaration-style font switches whose scope ends
+// at the enclosing group's closing brace (like \bfseries etc.)
+{
+  const { html } = render(
+    '\\documentclass{article}\\begin{document}{\\bf bold}after\\end{document}');
+  ok(/class="bf">bold<\/span>/.test(html), '\\bf bolds the group content');
+  ok(!/class="[^"]*\bbf\b[^"]*">after/.test(html), '\\bf scope ends at the group close');
+}
+{
+  const { html } = render(
+    '\\documentclass{article}\\begin{document}{\\it italic}after\\end{document}');
+  ok(/class="it">italic<\/span>/.test(html), '\\it italicizes the group content');
+  ok(!/class="[^"]*\bit\b[^"]*">after/.test(html), '\\it scope ends at the group close');
+}
+{
+  const { html } = render(
+    '\\documentclass{article}\\begin{document}{\\rm text}after\\end{document}');
+  ok(/class="rm">text<\/span>/.test(html), '\\rm switches the family for the group content');
+  ok(!/class="[^"]*\brm\b[^"]*">after/.test(html), '\\rm scope ends at the group close');
+}
+// \sc, \tt, \sl grouped together: same shape, one example each is enough
+{
+  const { html } = render(
+    '\\documentclass{article}\\begin{document}{\\sc a}{\\tt b}{\\sl c}\\end{document}');
+  ok(/class="sc">a<\/span>/.test(html), '\\sc sets small-caps shape');
+  ok(/class="tt">b<\/span>/.test(html), '\\tt sets the typewriter family');
+  ok(/class="sl">c<\/span>/.test(html), '\\sl sets the slanted shape');
+}
+// (11) \DeclareMathOperator(*) registers a KaTeX operator; the body (with TeX
+// spacing like \,) must reach KaTeX untouched and render without an error
+{
+  const { html } = render(
+    '\\documentclass{article}\\DeclareMathOperator*{\\argmax}{arg\\,max}\n'
+    + '\\begin{document}$\\argmax_x f(x)$\\end{document}');
+  ok(!/katex-error/.test(html), 'DeclareMathOperator operator renders without a KaTeX error');
+  ok(/class="mop"/.test(html), 'the operator name renders via KaTeX\'s upright operator class (\\operatorname)');
+  ok(!/documentclassarticle/.test(html), 'the preamble around the definition parses cleanly, no char-fallback leak');
+}
+// (12) \textcolor: named color gets a latex-color-<name> span; gray!NN mixes
+// degrade to the base name; unknown colors render uncolored, not red
+{
+  const { html } = render(
+    '\\documentclass{article}\\usepackage{xcolor}\\begin{document}'
+    + '\\textcolor{red}{RED}\\end{document}');
+  ok(/latex-color-red/.test(html), 'textcolor red gets class latex-color-red');
+  ok(/RED/.test(html), 'textcolor content is kept');
+}
+{
+  const { html } = render(
+    '\\documentclass{article}\\usepackage{xcolor}\\begin{document}'
+    + '\\textcolor{gray!30}{G}\\end{document}');
+  ok(/latex-color-gray/.test(html), 'gray!30 degrades to the base latex-color-gray class');
+}
+{
+  const { html } = render(
+    '\\documentclass{article}\\usepackage{xcolor}\\begin{document}'
+    + '\\textcolor{blindmagenta}{U}\\end{document}');
+  ok(!/latex-unsupported/.test(html), 'an unknown color name is not flagged unsupported');
+  ok(!/latex-color-/.test(html), 'an unknown color name gets no color class');
+  ok(/U/.test(html), 'unknown-color content still renders');
+}
+// \textcolor must also work with no \usepackage{xcolor} at all (core fallback)
+{
+  const { html } = render(
+    '\\documentclass{article}\\begin{document}\\textcolor{blue}{B}\\end{document}');
+  ok(/latex-color-blue/.test(html), 'textcolor works without \\usepackage{xcolor}');
+}
+// (13) itemize/enumerate/description accept + discard an enumitem-style
+// optional arg: the list still renders and the arg text never leaks
+{
+  const { body, html } = render(
+    '\\documentclass{article}\\begin{document}'
+    + '\\begin{itemize}[leftmargin=*]\\item A\\end{itemize}\\end{document}');
+  ok(body.querySelector('ul') !== null, 'itemize[leftmargin=*] still renders a list');
+  ok(!/leftmargin/.test(html), 'the itemize optional arg is consumed, not leaked as text');
+}
+{
+  const { body, html } = render(
+    '\\documentclass{article}\\begin{document}'
+    + '\\begin{enumerate}[leftmargin=*]\\item A\\end{enumerate}\\end{document}');
+  ok(body.querySelector('ol') !== null, 'enumerate[leftmargin=*] still renders a list');
+  ok(!/leftmargin/.test(html), 'the enumerate optional arg is consumed, not leaked as text');
+}
+{
+  const { body, html } = render(
+    '\\documentclass{article}\\begin{document}'
+    + '\\begin{description}[leftmargin=*]\\item[A] B\\end{description}\\end{document}');
+  ok(body.querySelector('dl') !== null, 'description[leftmargin=*] still renders a list');
+  ok(!/leftmargin/.test(html), 'the description optional arg is consumed, not leaked as text');
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

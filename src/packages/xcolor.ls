@@ -1,6 +1,24 @@
 'use strict'
 
 
+# Named colors that get an actual CSS class (base.css); xcolor's full
+# palette (+ any \definecolor name) is much larger, but an unstyled name
+# just renders uncolored rather than guessing a swatch. Exported (not just
+# used by XColor below) so the core \textcolor fallback in latex.ltx.ls -
+# for documents that skip \usepackage{xcolor} entirely - shares the same
+# color list instead of duplicating it.
+export namedTextColors = new Set(<[
+    black white red green blue cyan magenta yellow gray grey orange purple brown
+]>)
+
+# \textcolor's color arg is raw source text (e.g. "red", "gray!30"). A mix
+# expression degrades to its base name; anything else unrecognized returns
+# null so the caller leaves the content uncolored.
+export textColorClass = (name) ->
+    base = ((name or "").split "!").0.trim!
+    if namedTextColors.has base then "latex-color-" + base else null
+
+
 export class XColor
 
     args = @args = {}
@@ -121,14 +139,18 @@ export class XColor
     # args.\color =       <[ HV c-ml? c-spl ]>
     # \color      : (model, colorspec) ->
 
-    # {name/expression}{text} or [model-list]{color spec list}{text}
-    args.\textcolor = [ "HV" [ <[ c-ml? c-spl ]>
-                               <[ c ]>            ] "g" ]
-    \textcolor      : ->
-        if &.length == 2
-            return
-
-        return
+    # {name}{text}: named colors only this batch (model-list/spec-list forms
+    # are out of scope - unrecognized text just renders uncolored below).
+    # The color arg is raw source text ("rg"), not reparsed, so a mix
+    # expression like "gray!30" is plain source we can degrade ourselves
+    # instead of decoding the color grammar's parsed shape. Mode "H", not
+    # "HV": the grammar's hv_macro rule unconditionally discards a macro's
+    # return value (fine for pure declarations like \bfseries, wrong for
+    # a macro that must render a visible span).
+    args.\textcolor = <[ H rg g ]>
+    \textcolor      : (name, text) ->
+        cls = textColorClass name
+        if cls then [ @g.create @g.inline, text, cls ] else [ text ]
 
 
     # \colorbox{name}{text}

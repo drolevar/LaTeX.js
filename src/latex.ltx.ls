@@ -4,6 +4,7 @@ import
 
     './documentclasses': builtin-documentclasses
     './packages': builtin-packages
+    './packages/xcolor': { textColorClass }
 
     'lodash/assign'
     'lodash/assignIn'
@@ -298,6 +299,18 @@ export class LaTeX
     \em                 :!-> @g.setFontShape "em"
 
 
+    # plain-TeX oldstyle font switches: declaration-style like \bfseries
+    # etc. above, just under the shorter classic names.
+    [ args[..] = [ \HV ] for <[ bf it rm sc tt sl ]> ]
+
+    \bf                 :!-> @g.setFontWeight "bf"
+    \it                 :!-> @g.setFontShape  "it"
+    \rm                 :!-> @g.setFontFamily "rm"
+    \sc                 :!-> @g.setFontShape  "sc"
+    \tt                 :!-> @g.setFontFamily "tt"
+    \sl                 :!-> @g.setFontShape  "sl"
+
+
 
     ################
     # environments #
@@ -415,8 +428,11 @@ export class LaTeX
 
     # lists: itemize, enumerate, description
 
-    args.\itemize =     <[ V X items ]>
-    \itemize            : (items) ->
+    # `kv?` accepts + discards an enumitem-style optional arg, e.g.
+    # \begin{itemize}[leftmargin=*] - we don't model per-list layout
+    # tweaks, but the arg must be consumed rather than leak as body text.
+    args.\itemize =     <[ V X kv? items ]>
+    \itemize            : (opts, items) ->
         if &length == 0
             @g.startlist!
             @g.stepCounter \@itemdepth
@@ -442,8 +458,8 @@ export class LaTeX
 
 
 
-    args.\enumerate =   <[ V X enumitems ]>
-    \enumerate          : (items) ->
+    args.\enumerate =   <[ V X kv? enumitems ]>
+    \enumerate          : (opts, items) ->
         if &length == 0
             @g.startlist!
             @g.stepCounter \@enumdepth
@@ -469,8 +485,8 @@ export class LaTeX
         @g.setCounter \@enumdepth, @g.counter(\@enumdepth) - 1
 
 
-    args.\description = <[ V X items ]>
-    \description        : (items) ->
+    args.\description = <[ V X kv? items ]>
+    \description        : (opts, items) ->
         if &length == 0
             @g.startlist!
             return
@@ -736,6 +752,25 @@ export class LaTeX
      ..\ensuremath =    <[ H rg ]>
     \ensuremath         : (raw) -> [ @g.parseMath raw, false ]
 
+    # \hypersetup{key=val,...}: hyperref config we don't model at all;
+    # consume the group raw so it never leaks into the body as text.
+    args
+     ..\hypersetup =    <[ HV rg ]>
+    \hypersetup         : (opts) -> []
+
+    # \textcolor{name}{text}: core fallback so it works even without
+    # \usepackage{xcolor}/{color} - xcolor.ls registers the identical
+    # args/handler again on \usepackage, which is a harmless no-op repeat
+    # (see textColorClass, shared so both places agree on known names).
+    # Mode "H", not "HV": the grammar's hv_macro rule unconditionally
+    # discards a macro's return value (fine for pure declarations like
+    # \bfseries, wrong here - \textcolor must render a visible span).
+    args
+     ..\textcolor =     <[ H rg g ]>
+    \textcolor          : (name, text) ->
+        cls = textColorClass name
+        if cls then [ @g.create @g.inline, text, cls ] else [ text ]
+
     # booktabs rules: no rule support in inline-as-block tables yet, so drop
     # them (the table content still renders) rather than red-flag.
     args
@@ -758,6 +793,12 @@ export class LaTeX
     \multirow           : (rows, width, content) -> [ content ]
     \multicolumn        : (cols, spec, content) -> [ content ]
     \makecell           : (opt, content) -> [ content ]
+
+    # \rowcolor{color}: xcolor's per-row tint - no per-row styling model in
+    # the tabular renderer, so drop it (the row content still renders).
+    args
+     ..\rowcolor =      <[ H rg ]>
+    \rowcolor           : (color) -> []
 
     # \footnote[num]{text}: no page model, so render the note text inline in
     # a styled span (content preserved) rather than red-flagging it.
@@ -1372,6 +1413,15 @@ export class LaTeX
     args
      ..\DeclareRobustCommand = <[ HV s m n? rg? rg ]>
     \DeclareRobustCommand   : (star, name, nargs, def, body) !-> @g.defineUserCommand name, nargs, def, body, \renew
+
+    # \DeclareMathOperator(*){\op}{text}: math-only, so route straight to
+    # the generator's KaTeX macro map (see defineMathOperator) rather than
+    # defineUserCommand. Name uses "m" (a bare macro token, same as
+    # \newcommand's first arg - it must not be reparsed/invoked); body
+    # uses "rg" (raw, unparsed) so TeX spacing like \, survives verbatim.
+    args
+     ..\DeclareMathOperator = <[ HV s m rg ]>
+    \DeclareMathOperator    : (star, name, body) !-> @g.defineMathOperator name, body, star
 
     args
      ..\newtheorem =        <[ HV s i o? g o? ]>

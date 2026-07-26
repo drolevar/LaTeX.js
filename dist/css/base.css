@@ -834,6 +834,24 @@ dd {
 
 
 
+/* \textcolor named colors (xcolor.ls textColorClass); plain CSS keywords
+   cover the whole safelist, so no light/dark override is needed here */
+.latex-color-black   { color: black; }
+.latex-color-white   { color: white; }
+.latex-color-red     { color: red; }
+.latex-color-green   { color: green; }
+.latex-color-blue    { color: blue; }
+.latex-color-cyan    { color: cyan; }
+.latex-color-magenta { color: magenta; }
+.latex-color-yellow  { color: yellow; }
+.latex-color-gray    { color: gray; }
+.latex-color-grey    { color: gray; }
+.latex-color-orange  { color: orange; }
+.latex-color-purple  { color: purple; }
+.latex-color-brown   { color: brown; }
+
+
+
 /* unknown-environment marker chip: no base rule for .latex-unsupported
    exists in this fork (mdview styles that class on its own), so give
    the chip a minimal muted look here rather than depending on one */

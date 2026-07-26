@@ -632,6 +632,16 @@ export class Generator
                 return [ inline ]
             [ out ]
 
+    # \DeclareMathOperator target: write straight into the KaTeX macro map,
+    # skipping defineUserCommand entirely. An operator body (e.g. "arg\,max")
+    # must reach KaTeX byte for byte - defineUserCommand's \color-strip is
+    # harmless here (operator bodies don't carry \color) but it also treats
+    # the name as a reparse target and registers a text-mode expansion,
+    # neither of which an operator needs.
+    defineMathOperator: (name, body, starred) !->
+        op = if starred then "\\operatorname*" else "\\operatorname"
+        @_katexMacros["\\" + name] = op + "{" + body + "}"
+
     defineTheorem: (env, shared, title, parent, numbered) !->
         return if not env
         sharedName = shared?.textContent?.trim!

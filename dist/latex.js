@@ -17434,7 +17434,17 @@
 	    report: export$$c
 	};
 
-	var export$$a;
+	var namedTextColors,textColorClass,export$$a;
+	namedTextColors = new Set(['black', 'white', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'gray', 'grey', 'orange', 'purple', 'brown']);
+	textColorClass = function(name){
+	  var base;
+	  base = (name || "").split("!")[0].trim();
+	  if (namedTextColors.has(base)) {
+	    return "latex-color-" + base;
+	  } else {
+	    return null;
+	  }
+	};
 	export$$a = (function(){
 	  XColor.displayName = 'XColor';
 	  var args, colors; XColor.prototype;
@@ -17493,10 +17503,14 @@
 	      console.log("got model/color spec");
 	    }
 	  };
-	  args['textcolor'] = ["HV", [['c-ml?', 'c-spl'], ['c']], "g"];
-	  XColor.prototype['textcolor'] = function(){
-	    if (arguments.length === 2) {
-	      return;
+	  args['textcolor'] = ['H', 'rg', 'g'];
+	  XColor.prototype['textcolor'] = function(name, text){
+	    var cls;
+	    cls = textColorClass(name);
+	    if (cls) {
+	      return [this.g.create(this.g.inline, text, cls)];
+	    } else {
+	      return [text];
 	    }
 	  };
 	  args['colorbox'] = ['H', 'i?', 'c', 'g'];
@@ -19274,7 +19288,7 @@
 	var slice$$1 = [].slice, arrayFrom$$1 = Array.from || function(x){return slice$$1.call(x);};
 	export$ = (function(){
 	  LaTeX.displayName = 'LaTeX';
-	  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, z18$, z19$, z20$, z21$, z22$, z23$, z24$, z25$, z26$, z27$, z28$, z29$, z30$, z31$, z32$, z33$, z34$, prototype = LaTeX.prototype;
+	  var providedPackages, args, x$, i$, y$, ref$, len$, z$, z1$, z2$, z3$, z4$, z5$, z6$, z7$, z8$, z9$, z10$, z11$, z12$, z13$, z14$, z15$, z16$, z17$, z18$, z19$, z20$, z21$, z22$, z23$, z24$, z25$, z26$, z27$, z28$, z29$, z30$, z31$, z32$, z33$, z34$, z35$, z36$, z37$, z38$, z39$, prototype = LaTeX.prototype;
 	  providedPackages = ['calc', 'pspicture', 'picture', 'pict2e', 'keyval', 'comment'];
 	  LaTeX.prototype._title = null;
 	  LaTeX.prototype._author = null;
@@ -19618,6 +19632,28 @@
 	  LaTeX.prototype['em'] = function(){
 	    this.g.setFontShape("em");
 	  };
+	  for (i$ = 0, len$ = (ref$ = ['bf', 'it', 'rm', 'sc', 'tt', 'sl']).length; i$ < len$; ++i$) {
+	    z6$ = ref$[i$];
+	    args[z6$] = ['HV'];
+	  }
+	  LaTeX.prototype['bf'] = function(){
+	    this.g.setFontWeight("bf");
+	  };
+	  LaTeX.prototype['it'] = function(){
+	    this.g.setFontShape("it");
+	  };
+	  LaTeX.prototype['rm'] = function(){
+	    this.g.setFontFamily("rm");
+	  };
+	  LaTeX.prototype['sc'] = function(){
+	    this.g.setFontShape("sc");
+	  };
+	  LaTeX.prototype['tt'] = function(){
+	    this.g.setFontFamily("tt");
+	  };
+	  LaTeX.prototype['sl'] = function(){
+	    this.g.setFontShape("sl");
+	  };
 	  LaTeX.prototype['theenumi'] = function(){
 	    return [this.g.arabic(this.g.counter('enumi'))];
 	  };
@@ -19665,8 +19701,8 @@
 	  LaTeX.prototype['labelitemiv'] = function(){
 	    return [this.g.symbol('textperiodcentered')];
 	  };
-	  z6$ = args;
-	  z6$['centering'] = z6$['raggedright'] = z6$['raggedleft'] = ['HV'];
+	  z7$ = args;
+	  z7$['centering'] = z7$['raggedright'] = z7$['raggedleft'] = ['HV'];
 	  LaTeX.prototype['centering'] = function(){
 	    this.g.setAlignment("centering");
 	  };
@@ -19676,8 +19712,8 @@
 	  LaTeX.prototype['raggedleft'] = function(){
 	    this.g.setAlignment("raggedleft");
 	  };
-	  z7$ = args;
-	  z7$['center'] = z7$['flushleft'] = z7$['flushright'] = ['V'];
+	  z8$ = args;
+	  z8$['center'] = z8$['flushleft'] = z8$['flushright'] = ['V'];
 	  LaTeX.prototype['center'] = function(){
 	    this.g.startlist();
 	    return [this.g.create(this.g.list, null, "center")];
@@ -19699,13 +19735,13 @@
 	  LaTeX.prototype['endflushright'] = function(){
 	    this.g.endlist();
 	  };
-	  z8$ = args;
-	  z8$['titlepage'] = ['V'];
+	  z9$ = args;
+	  z9$['titlepage'] = ['V'];
 	  LaTeX.prototype['titlepage'] = function(){
 	    return [this.g.create(this.g.titlepage)];
 	  };
-	  z9$ = args;
-	  z9$['quote'] = z9$['quotation'] = z9$['verse'] = ['V'];
+	  z10$ = args;
+	  z10$['quote'] = z10$['quotation'] = z10$['verse'] = ['V'];
 	  LaTeX.prototype['quote'] = function(){
 	    this.g.startlist();
 	    return [this.g.create(this.g.quote)];
@@ -19727,8 +19763,8 @@
 	  LaTeX.prototype['endverse'] = function(){
 	    this.g.endlist();
 	  };
-	  z10$ = args;
-	  z10$['figure'] = z10$['table'] = ['V', 'o?'];
+	  z11$ = args;
+	  z11$['figure'] = z11$['table'] = ['V', 'o?'];
 	  LaTeX.prototype['figure'] = function(){
 	    this.g.beginFloat('figure');
 	    return [this.g.create(this.g.block, null, "figure")];
@@ -19743,8 +19779,8 @@
 	  LaTeX.prototype['endtable'] = function(){
 	    this.g.endFloat();
 	  };
-	  z11$ = args;
-	  z11$['figure*'] = z11$['table*'] = ['V', 'o?'];
+	  z12$ = args;
+	  z12$['figure*'] = z12$['table*'] = ['V', 'o?'];
 	  LaTeX.prototype['figure*'] = function(){
 	    this.g.beginFloat('figure');
 	    return [this.g.create(this.g.block, null, "figure")];
@@ -19759,13 +19795,13 @@
 	  LaTeX.prototype['endtable*'] = function(){
 	    this.g.endFloat();
 	  };
-	  z12$ = args;
-	  z12$['caption'] = ['V', 'o?', 'g'];
+	  z13$ = args;
+	  z13$['caption'] = ['V', 'o?', 'g'];
 	  LaTeX.prototype['caption'] = function(short, txt){
 	    return [this.g.caption(txt)];
 	  };
-	  args['itemize'] = ['V', 'X', 'items'];
-	  LaTeX.prototype['itemize'] = function(items){
+	  args['itemize'] = ['V', 'X', 'kv?', 'items'];
+	  LaTeX.prototype['itemize'] = function(opts, items){
 	    var ref$, label, this$ = this;
 	    if (arguments.length === 0) {
 	      this.g.startlist();
@@ -19790,8 +19826,8 @@
 	    this.g.endlist();
 	    this.g.setCounter('@itemdepth', this.g.counter('@itemdepth') - 1);
 	  };
-	  args['enumerate'] = ['V', 'X', 'enumitems'];
-	  LaTeX.prototype['enumerate'] = function(items){
+	  args['enumerate'] = ['V', 'X', 'kv?', 'enumitems'];
+	  LaTeX.prototype['enumerate'] = function(opts, items){
 	    var ref$, itemCounter, this$ = this;
 	    if (arguments.length === 0) {
 	      this.g.startlist();
@@ -19817,8 +19853,8 @@
 	    this.g.endlist();
 	    this.g.setCounter('@enumdepth', this.g.counter('@enumdepth') - 1);
 	  };
-	  args['description'] = ['V', 'X', 'items'];
-	  LaTeX.prototype['description'] = function(items){
+	  args['description'] = ['V', 'X', 'kv?', 'items'];
+	  LaTeX.prototype['description'] = function(opts, items){
 	    var this$ = this;
 	    if (arguments.length === 0) {
 	      this.g.startlist();
@@ -19882,8 +19918,8 @@
 	  LaTeX.prototype['bibliographystyle'] = function(style){
 	    return [];
 	  };
-	  z13$ = args;
-	  z13$['llap'] = z13$['rlap'] = z13$['clap'] = z13$['smash'] = z13$['hphantom'] = z13$['vphantom'] = z13$['phantom'] = ['H', 'hg'];
+	  z14$ = args;
+	  z14$['llap'] = z14$['rlap'] = z14$['clap'] = z14$['smash'] = z14$['hphantom'] = z14$['vphantom'] = z14$['phantom'] = ['H', 'hg'];
 	  LaTeX.prototype['llap'] = function(txt){
 	    return [this.g.create(this.g.inline, txt, "hbox llap")];
 	  };
@@ -20031,8 +20067,8 @@
 	    box.setAttribute("style", style);
 	    return [box];
 	  };
-	  z14$ = args;
-	  z14$['xspace'] = z14$['hfill'] = z14$['hfil'] = ['H'];
+	  z15$ = args;
+	  z15$['xspace'] = z15$['hfill'] = z15$['hfil'] = ['H'];
 	  LaTeX.prototype['xspace'] = function(){
 	    return [this.g.createText(" ")];
 	  };
@@ -20042,19 +20078,35 @@
 	  LaTeX.prototype['hfil'] = function(){
 	    return [];
 	  };
-	  z15$ = args;
-	  z15$['num'] = ['H', 'g'];
+	  z16$ = args;
+	  z16$['num'] = ['H', 'g'];
 	  LaTeX.prototype['num'] = function(n){
 	    return [n];
 	  };
-	  z16$ = args;
-	  z16$['ensuremath'] = ['H', 'rg'];
+	  z17$ = args;
+	  z17$['ensuremath'] = ['H', 'rg'];
 	  LaTeX.prototype['ensuremath'] = function(raw){
 	    return [this.g.parseMath(raw, false)];
 	  };
-	  z17$ = args;
-	  z17$['toprule'] = z17$['midrule'] = z17$['bottomrule'] = z17$['addlinespace'] = ['HV', 'o?'];
-	  z17$['cmidrule'] = ['HV', 'o?', 'g'];
+	  z18$ = args;
+	  z18$['hypersetup'] = ['HV', 'rg'];
+	  LaTeX.prototype['hypersetup'] = function(opts){
+	    return [];
+	  };
+	  z19$ = args;
+	  z19$['textcolor'] = ['H', 'rg', 'g'];
+	  LaTeX.prototype['textcolor'] = function(name, text){
+	    var cls;
+	    cls = textColorClass(name);
+	    if (cls) {
+	      return [this.g.create(this.g.inline, text, cls)];
+	    } else {
+	      return [text];
+	    }
+	  };
+	  z20$ = args;
+	  z20$['toprule'] = z20$['midrule'] = z20$['bottomrule'] = z20$['addlinespace'] = ['HV', 'o?'];
+	  z20$['cmidrule'] = ['HV', 'o?', 'g'];
 	  LaTeX.prototype['toprule'] = function(){
 	    return [];
 	  };
@@ -20070,10 +20122,10 @@
 	  LaTeX.prototype['cmidrule'] = function(){
 	    return [];
 	  };
-	  z18$ = args;
-	  z18$['multirow'] = ['H', 'g', 'g', 'g'];
-	  z18$['multicolumn'] = ['H', 'g', 'g', 'g'];
-	  z18$['makecell'] = ['H', 'o?', 'g'];
+	  z21$ = args;
+	  z21$['multirow'] = ['H', 'g', 'g', 'g'];
+	  z21$['multicolumn'] = ['H', 'g', 'g', 'g'];
+	  z21$['makecell'] = ['H', 'o?', 'g'];
 	  LaTeX.prototype['multirow'] = function(rows, width, content){
 	    return [content];
 	  };
@@ -20083,14 +20135,19 @@
 	  LaTeX.prototype['makecell'] = function(opt, content){
 	    return [content];
 	  };
-	  z19$ = args;
-	  z19$['footnote'] = ['H', 'o?', 'g'];
+	  z22$ = args;
+	  z22$['rowcolor'] = ['H', 'rg'];
+	  LaTeX.prototype['rowcolor'] = function(color){
+	    return [];
+	  };
+	  z23$ = args;
+	  z23$['footnote'] = ['H', 'o?', 'g'];
 	  LaTeX.prototype['footnote'] = function(num, text){
 	    return [this.g.create(this.g.inline, text, "footnote")];
 	  };
-	  z20$ = args;
-	  z20$['setstretch'] = ['HV', 'rg'];
-	  z20$['singlespacing'] = z20$['onehalfspacing'] = z20$['doublespacing'] = ['HV'];
+	  z24$ = args;
+	  z24$['setstretch'] = ['HV', 'rg'];
+	  z24$['singlespacing'] = z24$['onehalfspacing'] = z24$['doublespacing'] = ['HV'];
 	  LaTeX.prototype['setstretch'] = function(factor){
 	    return [];
 	  };
@@ -20103,20 +20160,20 @@
 	  LaTeX.prototype['doublespacing'] = function(){
 	    return [];
 	  };
-	  z21$ = args;
-	  z21$['spacing'] = ['V', 'rg'];
+	  z25$ = args;
+	  z25$['spacing'] = ['V', 'rg'];
 	  LaTeX.prototype['spacing'] = function(factor){
 	    return [this.g.create(this.g.block, null, "spacing")];
 	  };
 	  LaTeX.prototype['endspacing'] = function(){};
-	  z22$ = args;
-	  z22$['raisebox'] = ['H', 'rg', 'o?', 'o?', 'g'];
+	  z26$ = args;
+	  z26$['raisebox'] = ['H', 'rg', 'o?', 'o?', 'g'];
 	  LaTeX.prototype['raisebox'] = function(drop, ht, dp, content){
 	    return [content];
 	  };
-	  z23$ = args;
-	  z23$['subfigure'] = ['V', 'o?', 'rg'];
-	  z23$['minipage'] = ['V', 'o?', 'o?', 'o?', 'rg'];
+	  z27$ = args;
+	  z27$['subfigure'] = ['V', 'o?', 'rg'];
+	  z27$['minipage'] = ['V', 'o?', 'o?', 'o?', 'rg'];
 	  LaTeX.prototype['subfigure'] = function(pos, width){
 	    var box;
 	    box = this.g.create(this.g.block, null, "subfigure");
@@ -20129,14 +20186,14 @@
 	    box.setAttribute("style", "display:inline-block;vertical-align:top;width:" + (this.g.cssDimen(width) || 'auto') + ";");
 	    return [box];
 	  };
-	  z24$ = args;
-	  z24$['adjustbox'] = ['H', 'rg', 'g'];
+	  z28$ = args;
+	  z28$['adjustbox'] = ['H', 'rg', 'g'];
 	  LaTeX.prototype['adjustbox'] = function(keys, content){
 	    return [content];
 	  };
-	  z25$ = args;
-	  z25$['wrapfigure'] = ['V', 'o?', 'rg', 'rg'];
-	  z25$['wraptable'] = ['V', 'o?', 'rg', 'rg'];
+	  z29$ = args;
+	  z29$['wrapfigure'] = ['V', 'o?', 'rg', 'rg'];
+	  z29$['wraptable'] = ['V', 'o?', 'rg', 'rg'];
 	  LaTeX.prototype['wrapfigure'] = function(lines, place, width){
 	    var box;
 	    this.g.beginFloat('figure');
@@ -20157,11 +20214,11 @@
 	  LaTeX.prototype['endwraptable'] = function(){
 	    this.g.endFloat();
 	  };
-	  z26$ = args;
-	  z26$['thicklines'] = ['HV'];
-	  z26$['thinlines'] = ['HV'];
-	  z26$['linethickness'] = ['HV', 'l'];
-	  z26$['arrowlength'] = ['HV', 'l'];
+	  z30$ = args;
+	  z30$['thicklines'] = ['HV'];
+	  z30$['thinlines'] = ['HV'];
+	  z30$['linethickness'] = ['HV', 'l'];
+	  z30$['arrowlength'] = ['HV', 'l'];
 	  LaTeX.prototype['thinlines'] = function(){
 	    this.g.setLength('@wholewidth', new this.g.Length(0.4, "pt"));
 	  };
@@ -20511,10 +20568,10 @@
 	    this.g.stepCounter(c);
 	    return [this.g.refCounter(c)];
 	  };
-	  z27$ = args;
-	  z27$['newcommand'] = z27$['renewcommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
-	  z28$ = args;
-	  z28$['providecommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
+	  z31$ = args;
+	  z31$['newcommand'] = z31$['renewcommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
+	  z32$ = args;
+	  z32$['providecommand'] = ['HV', 'm', 'n?', 'rg?', 'rg'];
 	  LaTeX.prototype['newcommand'] = function(name, nargs, def, body){
 	    this.g.defineUserCommand(name, nargs, def, body, 'new');
 	  };
@@ -20524,22 +20581,27 @@
 	  LaTeX.prototype['providecommand'] = function(name, nargs, def, body){
 	    this.g.defineUserCommand(name, nargs, def, body, 'provide');
 	  };
-	  z29$ = args;
-	  z29$['DeclareRobustCommand'] = ['HV', 's', 'm', 'n?', 'rg?', 'rg'];
+	  z33$ = args;
+	  z33$['DeclareRobustCommand'] = ['HV', 's', 'm', 'n?', 'rg?', 'rg'];
 	  LaTeX.prototype['DeclareRobustCommand'] = function(star, name, nargs, def, body){
 	    this.g.defineUserCommand(name, nargs, def, body, 'renew');
 	  };
-	  z30$ = args;
-	  z30$['newtheorem'] = ['HV', 's', 'i', 'o?', 'g', 'o?'];
-	  z30$['theoremstyle'] = ['HV', 'g'];
+	  z34$ = args;
+	  z34$['DeclareMathOperator'] = ['HV', 's', 'm', 'rg'];
+	  LaTeX.prototype['DeclareMathOperator'] = function(star, name, body){
+	    this.g.defineMathOperator(name, body, star);
+	  };
+	  z35$ = args;
+	  z35$['newtheorem'] = ['HV', 's', 'i', 'o?', 'g', 'o?'];
+	  z35$['theoremstyle'] = ['HV', 'g'];
 	  LaTeX.prototype['newtheorem'] = function(star, env, shared, title, parent){
 	    this.g.defineTheorem(env, shared, title, parent, !star);
 	  };
 	  LaTeX.prototype['theoremstyle'] = function(style){
 	    return [];
 	  };
-	  z31$ = args;
-	  z31$['alph'] = z31$['Alph'] = z31$['arabic'] = z31$['roman'] = z31$['Roman'] = z31$['fnsymbol'] = ['H', 's', 'i?'];
+	  z36$ = args;
+	  z36$['alph'] = z36$['Alph'] = z36$['arabic'] = z36$['roman'] = z36$['Roman'] = z36$['fnsymbol'] = ['H', 's', 'i?'];
 	  LaTeX.prototype['alph'] = function(star, c){
 	    if (c) {
 	      return [this.g['alph'](this.g.counter(c))];
@@ -20665,28 +20727,28 @@
 	  LaTeX.prototype['makeatletter'] = function(){};
 	  args['makeatother'] = ['HV'];
 	  LaTeX.prototype['makeatother'] = function(){};
-	  z32$ = args;
-	  z32$['pagestyle'] = ['HV', 'i'];
+	  z37$ = args;
+	  z37$['pagestyle'] = ['HV', 'i'];
 	  LaTeX.prototype['pagestyle'] = function(s){};
-	  z33$ = args;
-	  z33$['linebreak'] = ['HV', 'n?'];
-	  z33$['nolinebreak'] = ['HV', 'n?'];
-	  z33$['fussy'] = ['HV'];
-	  z33$['sloppy'] = ['HV'];
+	  z38$ = args;
+	  z38$['linebreak'] = ['HV', 'n?'];
+	  z38$['nolinebreak'] = ['HV', 'n?'];
+	  z38$['fussy'] = ['HV'];
+	  z38$['sloppy'] = ['HV'];
 	  LaTeX.prototype['linebreak'] = function(o){};
 	  LaTeX.prototype['nolinebreak'] = function(o){};
 	  LaTeX.prototype['fussy'] = function(){};
 	  LaTeX.prototype['sloppy'] = function(){};
-	  z34$ = args;
-	  z34$['pagebreak'] = ['HV', 'n?'];
-	  z34$['nopagebreak'] = ['HV', 'n?'];
-	  z34$['samepage'] = ['HV'];
-	  z34$['enlargethispage'] = ['HV', 's', 'l'];
-	  z34$['newpage'] = ['HV'];
-	  z34$['clearpage'] = ['HV'];
-	  z34$['cleardoublepage'] = ['HV'];
-	  z34$['vfill'] = ['HV'];
-	  z34$['thispagestyle'] = ['HV', 'i'];
+	  z39$ = args;
+	  z39$['pagebreak'] = ['HV', 'n?'];
+	  z39$['nopagebreak'] = ['HV', 'n?'];
+	  z39$['samepage'] = ['HV'];
+	  z39$['enlargethispage'] = ['HV', 's', 'l'];
+	  z39$['newpage'] = ['HV'];
+	  z39$['clearpage'] = ['HV'];
+	  z39$['cleardoublepage'] = ['HV'];
+	  z39$['vfill'] = ['HV'];
+	  z39$['thispagestyle'] = ['HV', 'i'];
 	  LaTeX.prototype['pagebreak'] = function(o){};
 	  LaTeX.prototype['nopagebreak'] = function(o){};
 	  LaTeX.prototype['samepage'] = function(){};
@@ -21803,6 +21865,11 @@
 	      }
 	      return [out];
 	    });
+	  };
+	  Generator.prototype.defineMathOperator = function(name, body, starred){
+	    var op;
+	    op = starred ? "\\operatorname*" : "\\operatorname";
+	    this._katexMacros["\\" + name] = op + "{" + body + "}";
 	  };
 	  Generator.prototype.defineTheorem = function(env, shared, title, parent, numbered){
 	    var sharedName, ref$, parentName, ref1$, counter, name, g;
