@@ -793,6 +793,33 @@ dd {
 
 
 
+/* tables */
+
+.latex-tabular {
+    border-collapse: collapse;
+    font: inherit;
+    color: inherit;
+    margin: 0.5em auto;
+}
+
+.latex-tabular td {
+    padding: 0.15em 0.6em;
+    vertical-align: top;
+}
+
+.latex-col-l { text-align: left; }
+.latex-col-c { text-align: center; }
+.latex-col-r { text-align: right; }
+
+/* rules and vertical lines derive from the text colour, so the dark
+   theme inverts them without an override */
+.latex-hline td { border-top: 1px solid currentColor; }
+.latex-hline-bottom td { border-bottom: 1px solid currentColor; }
+.latex-vline-left { border-left: 1px solid currentColor; }
+.latex-vline-right { border-right: 1px solid currentColor; }
+
+
+
 /* the TeX and LaTeX logos */
 
 span.tex,

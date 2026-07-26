@@ -165,6 +165,240 @@ export class Generator
         el
 
 
+    ### tabular
+
+    # Column spec text (e.g. "|l|c|p{3cm}|") -> array of
+    # { align, borderLeft, borderRight }. Widths and @/!/>/< content are
+    # consumed; *{n}{sub} is pre-expanded. F2 extends the column types.
+    parseColspec: (spec) ->
+        cols = []
+        return cols if not spec
+        # read a balanced {..} at s[j] (j on '{'); returns [content, next].
+        readGroup = (s, j) ->
+            depth = 0
+            start = j
+            while j < s.length
+                ch = s[j]
+                if ch == '{'
+                    depth = depth + 1
+                else if ch == '}'
+                    depth = depth - 1
+                    return [ s.substring(start + 1, j), j + 1 ] if depth == 0
+                j = j + 1
+            [ s.substring(start + 1), s.length ]
+        border = 0
+        i = 0
+        n = spec.length
+        while i < n
+            c = spec[i]
+            if c == ' ' or c == '\t' or c == '\n' or c == '\r'
+                i = i + 1
+            else if c == '|'
+                border = border + 1
+                i = i + 1
+            else if c == 'l' or c == 'c' or c == 'r'
+                cols.push { align: c, borderLeft: border > 0, borderRight: false }
+                border = 0
+                i = i + 1
+            else if c == 'p' or c == 'm' or c == 'b' or c == 'X'
+                # p/m/b take a {width}; X (tabularx) stretches. All left-align.
+                i = i + 1
+                if spec[i] == '{'
+                    r = readGroup spec, i
+                    i = r[1]
+                cols.push { align: 'l', borderLeft: border > 0, borderRight: false }
+                border = 0
+            else if c == '@' or c == '!'
+                # inter-column material / rule; consume its {..}. ! draws a line.
+                rule = c == '!'
+                i = i + 1
+                if spec[i] == '{'
+                    r = readGroup spec, i
+                    i = r[1]
+                border = border + 1 if rule
+            else if c == '>' or c == '<'
+                # array-package per-cell decl; consume {..}, ignored in F1.
+                i = i + 1
+                if spec[i] == '{'
+                    r = readGroup spec, i
+                    i = r[1]
+            else if c == '*'
+                # *{n}{sub}: repeat sub n times, pre-expanded.
+                i = i + 1
+                reps = 0
+                if spec[i] == '{'
+                    r = readGroup spec, i
+                    reps = (parseInt r[0].trim!, 10) or 0
+                    i = r[1]
+                sub = ''
+                if spec[i] == '{'
+                    r = readGroup spec, i
+                    sub = r[0]
+                    i = r[1]
+                if reps > 0 and sub
+                    expanded = @parseColspec sub
+                    if expanded.length > 0 and border > 0
+                        expanded[0].borderLeft = true
+                        border = 0
+                    for _r from 1 to reps
+                        for col in expanded
+                            cols.push { align: col.align, borderLeft: col.borderLeft, borderRight: col.borderRight }
+            else
+                i = i + 1
+        # a trailing | (or !) is the right border of the last column
+        if border > 0 and cols.length > 0
+            cols[cols.length - 1].borderRight = true
+        cols
+
+    # Raw body -> array of { cells: [source], hline }. Splits on
+    # \\ / \tabularnewline (rows) and & (cells) only at brace depth 0,
+    # outside nested environments and inline math. \\-escaped chars,
+    # comments, and nested \begin..\end are copied through verbatim.
+    splitTabularBody: (raw) ->
+        rows = []
+        cells = []
+        cur = ''
+        depth = 0
+        env = 0
+        math = false
+        i = 0
+        n = raw.length
+        isLetter = (ch) -> ch? and /[a-zA-Z]/.test ch
+        endCell = !->
+            cells.push cur
+            cur := ''
+        endRow = !->
+            endCell!
+            rows.push { cells: cells.slice! }
+            cells := []
+        while i < n
+            c = raw[i]
+            if c == '\\'
+                d = raw[i + 1]
+                if d == '\\'
+                    if depth == 0 and env == 0 and not math
+                        i = i + 2
+                        i = i + 1 if raw[i] == '*'
+                        if raw[i] == '['
+                            while i < n and raw[i] != ']'
+                                i = i + 1
+                            i = i + 1 if i < n
+                        endRow!
+                    else
+                        cur += '\\\\'
+                        i = i + 2
+                else
+                    # control word (letters) or a single control symbol
+                    j = i + 1
+                    if isLetter raw[j]
+                        while j < n and isLetter raw[j]
+                            j = j + 1
+                        word = raw.substring i + 1, j
+                    else
+                        word = raw[j] ? ''
+                        j = j + 1
+                    if word == 'begin'
+                        env = env + 1
+                        cur += '\\' + word
+                    else if word == 'end'
+                        env = env - 1 if env > 0
+                        cur += '\\' + word
+                    else if word == 'tabularnewline' and depth == 0 and env == 0 and not math
+                        endRow!
+                    else
+                        cur += '\\' + word
+                    i = j
+            else if c == '%'
+                while i < n and raw[i] != '\n'
+                    i = i + 1
+            else if c == '{'
+                depth = depth + 1
+                cur += c
+                i = i + 1
+            else if c == '}'
+                depth = depth - 1 if depth > 0
+                cur += c
+                i = i + 1
+            else if c == '$'
+                math = not math
+                cur += c
+                i = i + 1
+            else if c == '&' and depth == 0 and env == 0 and not math
+                endCell!
+                i = i + 1
+            else
+                cur += c
+                i = i + 1
+        # flush a trailing non-empty cell/row (body without a final \\)
+        endRow! if cur.trim!.length > 0 or cells.length > 0
+        @finalizeTabularRows rows
+
+    # Pull a leading run of \hline off each row into a per-row flag. A
+    # row that is only a rule (all cells empty) becomes a bottom border
+    # on the previous row rather than an empty data row.
+    finalizeTabularRows: (rows) ->
+        out = []
+        for row in rows
+            hline = false
+            if row.cells.length > 0
+                res = @stripLeadingRules row.cells[0]
+                hline = res.hline
+                row.cells[0] = res.rest
+            allEmpty = row.cells.every (x) -> x.trim!.length == 0
+            if allEmpty
+                out[out.length - 1].bottomHline = true if hline and out.length > 0
+            else
+                out.push { cells: row.cells, hline: hline }
+        out
+
+    stripLeadingRules: (text) ->
+        s = text
+        found = false
+        loop
+            m = s.match /^\s*\\hline\b/
+            break if not m
+            found := true
+            s := s.substring m.0.length
+        { hline: found, rest: s }
+
+    # Build <table class="latex-tabular"> from the raw spec + body. Each
+    # cell reparses through the tolerant fragment path.
+    renderTabular: (spec, body, name) ->
+        cols = @parseColspec spec
+        rows = @splitTabularBody body
+        table = document.createElement 'table'
+        table.setAttribute 'class', 'latex-tabular'
+        for row in rows
+            tr = document.createElement 'tr'
+            cls = []
+            cls.push 'latex-hline' if row.hline
+            cls.push 'latex-hline-bottom' if row.bottomHline
+            tr.setAttribute 'class', cls.join ' ' if cls.length > 0
+            for cell, ci in row.cells
+                td = document.createElement 'td'
+                col = if ci < cols.length then cols[ci] else cols[cols.length - 1]
+                tdcls = [ 'latex-col-' + (col?.align or 'l') ]
+                tdcls.push 'latex-vline-left' if col?.borderLeft
+                tdcls.push 'latex-vline-right' if col?.borderRight
+                td.setAttribute 'class', tdcls.join ' '
+                @appendCellContent td, cell.trim!
+                tr.appendChild td
+            table.appendChild tr
+        table
+
+    # Reparse a cell's source and append it to td, unwrapping a lone
+    # wrapping <p> so cell content stays inline.
+    appendCellContent: (td, source) !->
+        return if not source
+        node = @reparse source
+        return if not node
+        if (node.nodeName ? '').toLowerCase! == 'p'
+            while node.firstChild
+                td.appendChild node.firstChild
+        else
+            td.appendChild node
+
+
     location: !-> error "location function not set!"
 
 

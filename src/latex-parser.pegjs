@@ -138,6 +138,7 @@ text "text" =
 
     / linebreak
     / math_env
+    / tabular_env
     / (&unskip_macro _)? m:hmode_macro          { return m; }
     / math
 
@@ -1060,6 +1061,42 @@ math_env =
         if (id) g.setNodeId(frag, id);
         return frag;
     }
+
+// tabular family: capture the column spec and body as RAW text and hand
+// them to the generator, which splits rows/cells at depth 0 and reparses
+// each cell. A raw-capture rule (like math_env) is required because the
+// generic environment rule pre-parses the body, fusing the alignment tabs
+// into "ampersand soup". Nested tabulars are captured whole into the body
+// (balanced by tabular_group) and rendered as flow by the cell reparse.
+tabular_env =
+    escape begin _ begin_group name:$tabular_env_name end_group
+    _ opt_group?                                            // optional [pos], discarded
+    ( &{ return name === 'tabular*' || name === 'tabularx'; } _ raw_braces )?   // {width}, discarded
+    _ spec:raw_braces
+    body:$tabular_body
+    escape end _ begin_group $tabular_env_name end_group
+    { return g.renderTabular(spec, body, name); }
+
+tabular_env_name "tabular environment name" =
+    "tabular" "*"?
+    / "tabularx"
+
+// raw balanced-brace group: returns the inner text (nested braces kept).
+raw_braces =
+    begin_group c:$(raw_braces / [^{}])* end_group          { return c; }
+
+// body text up to the matching \end{tabular...}, keeping any nested
+// \begin{tabular...}...\end{tabular...} pair inside the captured string.
+tabular_body =
+    (tabular_group / !tabular_end .)*
+
+tabular_group =
+    escape begin _ begin_group $tabular_env_name end_group
+        tabular_body
+    escape end _ begin_group $tabular_env_name end_group
+
+tabular_end =
+    escape end _ begin_group tabular_env_name end_group
 
 math_env_name "math environment name" =
     ("equation" "*"?)
